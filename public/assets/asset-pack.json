@@ -1,0 +1,103 @@
+{
+  "menuScreen": [{
+    "type": "image",
+    "key": "bg_start_screen",
+    "url": "/assets/menuScreen/bg_menu_screen.png",
+    "overwrite": false
+  },
+  {
+    "type": "image",
+    "key": "sprite_btn_start",
+    "url": "/assets/menuScreen/sprite_btn_start.png",
+    "overwrite": false
+  },
+  {
+    "type": "image",
+    "key": "sprite_btn_instruction",
+    "url": "/assets/menuScreen/sprite_btn_instruction.png",
+    "overwrite": false
+  },
+  {
+    "type": "image",
+    "key": "sprite_btn_credit",
+    "url": "/assets/menuScreen/sprite_btn_credit.png",
+    "overwrite": false
+  }],
+
+
+  "instructionScreen": [{
+    "type": "image",
+    "key": "bg_instruction_screen",
+    "url": "/assets/instructionScreen/bg_instruction_screen.png",
+    "overwrite": false
+  }],
+
+
+  "creditScreen": [{
+    "type": "image",
+    "key": "bg_credit_screen",
+    "url": "/assets/creditScreen/bg_credit_screen.png",
+    "overwrite": false
+  }],
+
+
+  "winScreen": [{
+    "type": "image",
+    "key": "bg_win_screen",
+    "url": "/assets/winScreen/bg_win_screen.png",
+    "overwrite": false
+  }],
+
+
+  "loseScreen": [{
+    "type": "image",
+    "key": "bg_lose_screen",
+    "url": "/assets/loseScreen/bg_lose_screen.png",
+    "overwrite": false
+  }],
+
+
+  "gameplayScreen": [{
+    "type": "image",
+    "key": "bg_gameplay_screen",
+    "url": "/assets/gameplayScreen/bg_gameplay_screen.png",
+    "overwrite": false
+  },
+  {
+    "type": "audio",
+    "key": "music_game_bg",
+    "urls": ["/assets/gameplayScreen/music/music_game_bg.mp3"],
+    "autoDecode": true
+  },
+  {
+    "type": "audio",
+    "key": "bump1",
+    "urls": ["/assets/gameplayScreen/sfx/bump1.mp3"],
+    "autoDecode": true
+  },
+  {
+    "type": "audio",
+    "key": "bump2",
+    "urls": ["/assets/gameplayScreen/sfx/bump2.mp3"],
+    "autoDecode": true
+  },
+  {
+    "type": "audio",
+    "key": "bump3",
+    "urls": ["/assets/gameplayScreen/sfx/bump3.mp3"],
+    "autoDecode": true
+  },
+  {
+    "type": "audio",
+    "key": "bump4",
+    "urls": ["/assets/gameplayScreen/sfx/bump4.mp3"],
+    "autoDecode": true
+  }],
+
+
+  "meta": {
+    "app": "For the IMPire",
+    "url": "http://ggj16.jondeaves.me",
+    "version": "0.0.1"
+  }
+}
