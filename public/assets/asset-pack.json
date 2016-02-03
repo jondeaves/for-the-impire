@@ -6,24 +6,26 @@
     "overwrite": false
   },
   {
-    "type": "image",
-    "key": "sprite_btn_start",
-    "url": "/assets/menuScreen/sprite_btn_start.png",
-    "overwrite": false
+    "type": "spritesheet",
+    "key": "spritesheet_start_button",
+    "url": "/assets/menuScreen/spritesheet_start_button.png",
+    "frameWidth": 270,
+    "frameHeight": 117
   },
   {
-    "type": "image",
-    "key": "sprite_btn_instruction",
-    "url": "/assets/menuScreen/sprite_btn_instruction.png",
-    "overwrite": false
+    "type": "spritesheet",
+    "key": "spritesheet_instruction_button",
+    "url": "/assets/menuScreen/spritesheet_instruction_button.png",
+    "frameWidth": 447,
+    "frameHeight": 117
   },
   {
-    "type": "image",
-    "key": "sprite_btn_credit",
-    "url": "/assets/menuScreen/sprite_btn_credit.png",
-    "overwrite": false
+    "type": "spritesheet",
+    "key": "spritesheet_credit_button",
+    "url": "/assets/menuScreen/spritesheet_credit_button.png",
+    "frameWidth": 348,
+    "frameHeight": 117
   }],
-
 
   "instructionScreen": [{
     "type": "image",
