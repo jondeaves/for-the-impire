@@ -6,20 +6,17 @@ Boot.prototype = {
   preload: function () { },
 
   create: function () {
-    this.game.input.maxPointers = 1;
+    this.game.input.maxPointers = 2;
 
-    if (this.game.device.desktop) {
-      this.game.stage.scale.pageAlignHorizontally = true;
-    } else {
-      this.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-      this.game.scale.minWidth =  480;
-      this.game.scale.minHeight = 260;
-      this.game.scale.maxWidth = 640;
-      this.game.scale.maxHeight = 480;
-      this.game.scale.forceLandscape = true;
-      this.game.scale.pageAlignHorizontally = true;
-      this.game.scale.setScreenSize(true);
-    }
+    // Scale the game on smaller devices
+    this.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+    this.game.scale.minWidth =  this.game.constants.world.minWidth;
+    this.game.scale.minHeight = this.game.constants.world.minHeight;
+    this.game.scale.maxWidth = this.game.constants.world.width;
+    this.game.scale.maxHeight = this.game.constants.world.height;
+    this.game.scale.forceLandscape = true;
+    this.game.scale.pageAlignHorizontally = true;
+    this.game.scale.refresh();
 
     this.game.state.start('LoadingScreen');
   }

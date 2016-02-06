@@ -2,8 +2,10 @@ module.exports = function() {
   return {
 
     world: {
-      width: 800,
-      height: 480
+      minWidth: 860,
+      minHeight: 480,
+      width: 1280,
+      height: 720
     },
 
     physics: {

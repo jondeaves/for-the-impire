@@ -1,0 +1,90 @@
+/*
+ * Text
+ */
+/* ----------------------------------------------------------------------------------------------------
+    Font Families
+   ---------------------------------------------------------------------------------------------------- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Open Sans', Helvetica, Arial, sans-serif;
+}
+
+p, ul, li, a {
+  font-family: 'Open Sans', Helvetica, Arial, sans-serif;
+}
+
+/* ----------------------------------------------------------------------------------------------------
+    Regular Sizing
+   ---------------------------------------------------------------------------------------------------- */
+body {
+  font-size: 100%;
+}
+
+body, caption, th, td, input, textarea, select, option, legend, fieldset, h1, h2, h3, h4, h5, h6 {
+  font-size-adjust: 0.5;
+}
+
+body, caption, th, td, input, textarea, select, option, legend, fieldset {
+  line-height: 26px;
+  font-size: 17px;
+}
+
+h1 {
+  line-height: 1.000;
+  font-size: 32px;
+}
+
+h2 {
+  line-height: 1.000;
+  font-size: 26px;
+}
+
+h3 {
+  line-height: 1.000;
+  font-size: 22px;
+}
+
+h4 {
+  line-height: 1.000;
+  font-size: 18px;
+}
+
+blockquote {
+  line-height: 1.000;
+  font-size: 20px;
+}
+
+/* ----------------------------------------------------------------------------------------------------
+    Colours
+   ---------------------------------------------------------------------------------------------------- */
+h1, h2, h3, h4, h5, h6, body, p {
+  color: #333333;
+}
+
+/* ----------------------------------------------------------------------------------------------------
+    Links
+   ---------------------------------------------------------------------------------------------------- */
+a, a:hover, a:active, a:visited {
+  border-bottom: 1px solid #333333;
+  color: #333333;
+  text-decoration: none;
+}
+
+/* Basics */
+html, body {
+  padding: 0;
+  margin: 0;
+}
+
+html img, body img {
+  max-width: 100%;
+  border: none;
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+#game_canvas {
+  margin-top: 20px;
+}

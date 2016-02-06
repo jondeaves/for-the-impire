@@ -4,13 +4,22 @@
   "author": "Jon Deaves <hello@jondeaves.me>",
   "description": "A quick, fun and casual game made as part of of Global Game Jam 2016",
   "license": "MIT",
+  "repository": "https://github.com/jondeaves/for-the-impire",
   "dependencies": {
     "phaser": "^2.4.4"
   },
   "devDependencies": {
     "browserify": "^13.0.0",
     "gulp": "^3.9.0",
+    "gulp-autoprefixer": "~2.3.x",
     "gulp-copy": "0.0.2",
+    "gulp-filter": "~2.0.x",
+    "gulp-minify-css": "~1.0.x",
+    "gulp-notify": "~2.2.x",
+    "gulp-plumber": "^1.0.1",
+    "gulp-rename": "~1.2.x",
+    "gulp-sass": "^2.2.0",
+    "gulp-sourcemaps": "~1.5.x",
     "vinyl-source-stream": "^1.1.0",
     "watchify": "^3.7.0"
   }

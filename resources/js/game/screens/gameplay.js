@@ -12,7 +12,6 @@ gamePlayScreen.prototype = {
     gamePlayScreenBG.height = game.height;
 
     // Enable the physics
-    game.world.setBounds(-400, -400, 1600, 1200);
     game.physics.startSystem(Phaser.Physics.P2JS);
     game.physics.p2.setImpactEvents(true);
     game.physics.p2.restitution = game.constants.physics.restitution;
@@ -26,6 +25,7 @@ gamePlayScreen.prototype = {
     // Testing our sprite
     var imp = new game.Imp(game, {x: 200, y:200}, 'spritesheet_imp_one');
     game.add.existing(imp);
+
   },
 
   update: function(){}

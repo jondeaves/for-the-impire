@@ -3,8 +3,10 @@ module.exports = function() {
   return {
 
     world: {
-      width: 800,
-      height: 480
+      minWidth: 860,
+      minHeight: 480,
+      width: 1280,
+      height: 720
     },
 
     physics: {
@@ -24,20 +26,17 @@ Boot.prototype = {
   preload: function () { },
 
   create: function () {
-    this.game.input.maxPointers = 1;
+    this.game.input.maxPointers = 2;
 
-    if (this.game.device.desktop) {
-      this.game.stage.scale.pageAlignHorizontally = true;
-    } else {
-      this.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-      this.game.scale.minWidth =  480;
-      this.game.scale.minHeight = 260;
-      this.game.scale.maxWidth = 640;
-      this.game.scale.maxHeight = 480;
-      this.game.scale.forceLandscape = true;
-      this.game.scale.pageAlignHorizontally = true;
-      this.game.scale.setScreenSize(true);
-    }
+    // Scale the game on smaller devices
+    this.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+    this.game.scale.minWidth =  this.game.constants.world.minWidth;
+    this.game.scale.minHeight = this.game.constants.world.minHeight;
+    this.game.scale.maxWidth = this.game.constants.world.width;
+    this.game.scale.maxHeight = this.game.constants.world.height;
+    this.game.scale.forceLandscape = true;
+    this.game.scale.pageAlignHorizontally = true;
+    this.game.scale.refresh();
 
     this.game.state.start('LoadingScreen');
   }
@@ -78,7 +77,6 @@ gamePlayScreen.prototype = {
     gamePlayScreenBG.height = game.height;
 
     // Enable the physics
-    game.world.setBounds(-400, -400, 1600, 1200);
     game.physics.startSystem(Phaser.Physics.P2JS);
     game.physics.p2.setImpactEvents(true);
     game.physics.p2.restitution = game.constants.physics.restitution;
@@ -92,6 +90,7 @@ gamePlayScreen.prototype = {
     // Testing our sprite
     var imp = new game.Imp(game, {x: 200, y:200}, 'spritesheet_imp_one');
     game.add.existing(imp);
+
   },
 
   update: function(){}
@@ -287,16 +286,15 @@ module.exports = Imp;
 },{}],11:[function(require,module,exports){
 // Load our files
 var constantsModule = require('./game/constants');
-var impModule = require('./game/sprites/imp');
 
 
 // Initialize everything
 var constants = constantsModule();
 window.onload = function() {
 
-  var game = new Phaser.Game(constants.world.width, constants.world.height, Phaser.AUTO, 'game_canvas');
+  var game = new Phaser.Game(constants.world.width, constants.world.height, Phaser.CANVAS, 'game_canvas');
 
-  // Load up our different game states
+  // Load up our different game states and begin with the booting
   game.state.add('Boot', require('./game/screens/boot'));
   game.state.add("LoadingScreen", require('./game/screens/loading'));
 
@@ -314,7 +312,7 @@ window.onload = function() {
 
   // Connect things
   game.constants = constants;
-  game.Imp = impModule;
+  game.Imp = require('./game/sprites/imp');
 
 
   // Ready to go
