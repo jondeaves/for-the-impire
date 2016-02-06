@@ -2,9 +2,14 @@
 module.exports = function() {
   return {
 
-    // Game World
-    'screenWidth': 800,
-    'screenHeight': 480
+    world: {
+      width: 800,
+      height: 480
+    },
+
+    physics: {
+      restitution: 5
+    }
 
   };
 
@@ -66,9 +71,27 @@ gamePlayScreen.prototype = {
   preload: function() {},
 
   create: function(){
+
+    // Set the stage
     var gamePlayScreenBG = game.add.image(0, 0, "bg_gameplay_screen");
     gamePlayScreenBG.width = game.width;
     gamePlayScreenBG.height = game.height;
+
+    // Enable the physics
+    game.world.setBounds(-400, -400, 1600, 1200);
+    game.physics.startSystem(Phaser.Physics.P2JS);
+    game.physics.p2.setImpactEvents(true);
+    game.physics.p2.restitution = game.constants.physics.restitution;
+
+
+    // Testing audio
+    var gameplayBgMusic = game.add.audio('music_game_bg');
+    gameplayBgMusic.play();
+    gameplayBgMusic.loopFull(1);
+
+    // Testing our sprite
+    var imp = new game.Imp(game, {x: 200, y:200}, 'spritesheet_imp_one');
+    game.add.existing(imp);
   },
 
   update: function(){}
@@ -232,15 +255,46 @@ winScreen.prototype = {
 };
 
 },{}],10:[function(require,module,exports){
+var Imp = function(game, spawn, spriteSheet) {
+
+  // Bit of prep work
+  var impScale = 0.1;
+  var frames = game.cache.getFrameData(spriteSheet).getFrames();
+
+  // Instansiate
+  Phaser.Sprite.call(this, game, spawn.x, spawn.y, spriteSheet);
+
+  // Appearance
+  this.scale.setTo(impScale, impScale);
+  this.animations.add('walk', [0, 1, 2]);
+  this.animations.add('death', [3]);
+  this.animations.play('walk', 10, true);
+
+  // Setup physics
+  game.physics.p2.enable(this, false);
+  this.anchor.y = 0.33;
+  this.body.setCircle((frames[0].width * impScale) / 3.3);
+
+};
+
+Imp.prototype = Object.create(Phaser.Sprite.prototype);
+Imp.prototype.constructor = Imp;
+Imp.prototype.update = function() {};
+
+
+module.exports = Imp;
+
+},{}],11:[function(require,module,exports){
 // Load our files
-var constantsModule = require('./game/constants.js');
+var constantsModule = require('./game/constants');
+var impModule = require('./game/sprites/imp');
 
 
 // Initialize everything
 var constants = constantsModule();
 window.onload = function() {
 
-  var game = new Phaser.Game(constants.screenWidth, constants.screenHeight, Phaser.AUTO, 'game_canvas');
+  var game = new Phaser.Game(constants.world.width, constants.world.height, Phaser.AUTO, 'game_canvas');
 
   // Load up our different game states
   game.state.add('Boot', require('./game/screens/boot'));
@@ -258,10 +312,14 @@ window.onload = function() {
   game.state.start("Boot");
 
 
-  // Ready to go
+  // Connect things
   game.constants = constants;
+  game.Imp = impModule;
+
+
+  // Ready to go
   this.game = game;
 
 };
 
-},{"./game/constants.js":1,"./game/screens/boot":2,"./game/screens/credit":3,"./game/screens/gameplay":4,"./game/screens/instruction":5,"./game/screens/loading":6,"./game/screens/lose":7,"./game/screens/menu":8,"./game/screens/win":9}]},{},[10]);
+},{"./game/constants":1,"./game/screens/boot":2,"./game/screens/credit":3,"./game/screens/gameplay":4,"./game/screens/instruction":5,"./game/screens/loading":6,"./game/screens/lose":7,"./game/screens/menu":8,"./game/screens/win":9,"./game/sprites/imp":10}]},{},[11]);

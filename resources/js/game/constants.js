@@ -1,9 +1,14 @@
 module.exports = function() {
   return {
 
-    // Game World
-    'screenWidth': 800,
-    'screenHeight': 480
+    world: {
+      width: 800,
+      height: 480
+    },
+
+    physics: {
+      restitution: 5
+    }
 
   };
 

@@ -1,12 +1,13 @@
 // Load our files
-var constantsModule = require('./game/constants.js');
+var constantsModule = require('./game/constants');
+var impModule = require('./game/sprites/imp');
 
 
 // Initialize everything
 var constants = constantsModule();
 window.onload = function() {
 
-  var game = new Phaser.Game(constants.screenWidth, constants.screenHeight, Phaser.AUTO, 'game_canvas');
+  var game = new Phaser.Game(constants.world.width, constants.world.height, Phaser.AUTO, 'game_canvas');
 
   // Load up our different game states
   game.state.add('Boot', require('./game/screens/boot'));
@@ -24,8 +25,12 @@ window.onload = function() {
   game.state.start("Boot");
 
 
-  // Ready to go
+  // Connect things
   game.constants = constants;
+  game.Imp = impModule;
+
+
+  // Ready to go
   this.game = game;
 
 };
