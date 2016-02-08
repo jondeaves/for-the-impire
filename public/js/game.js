@@ -11,6 +11,25 @@ module.exports = function() {
 
     physics: {
       restitution: 5
+    },
+
+    game: {
+      start: {
+        impCount: 6
+      }
+    },
+
+    imp: {
+      startHealth: 100,
+      spawnRate: '',
+
+      bumpDamage: 15,
+      damping: 6,
+
+      baseThrust: 50,
+      rotationSpeed: 0.0025,
+
+      targetOffset: 30,               // Within this distance the target will be dropped
     }
 
   };
@@ -66,6 +85,21 @@ creditScreen.prototype = {
 var gamePlayScreen = function(){};
 module.exports = gamePlayScreen;
 
+// Track in-game objects
+var impObjectGroup;
+
+
+// Audio
+var clickSoundEffect;
+
+
+// Tracking line for clicks
+var clickLine = new Phaser.Line(0, 0, 0, 0);
+var clickCircle = new Phaser.Circle(0, 0, 0);
+var clickPoint = null;
+var clickNearestImp = null;
+
+
 gamePlayScreen.prototype = {
   preload: function() {},
 
@@ -75,11 +109,17 @@ gamePlayScreen.prototype = {
     var gamePlayScreenBG = game.add.image(0, 0, "bg_gameplay_screen");
     gamePlayScreenBG.width = game.width;
     gamePlayScreenBG.height = game.height;
+    game.totalImpCount = 0;
 
     // Enable the physics
     game.physics.startSystem(Phaser.Physics.P2JS);
     game.physics.p2.setImpactEvents(true);
     game.physics.p2.restitution = game.constants.physics.restitution;
+    game.worldCollideGroup = game.physics.p2.createCollisionGroup();
+
+
+    // Click Handler
+    setupClickLine();
 
 
     // Testing audio
@@ -87,14 +127,122 @@ gamePlayScreen.prototype = {
     gameplayBgMusic.play();
     gameplayBgMusic.loopFull(1);
 
+    clickSoundEffect = game.add.audio('click_sfx');
+
+
     // Testing our sprite
-    var imp = new game.Imp(game, {x: 200, y:200}, 'spritesheet_imp_one');
-    game.add.existing(imp);
+    spawnImps(game.constants.game.start.impCount);
 
   },
 
-  update: function(){}
+  update: function(){
+
+    // Update click line if present
+    if(clickLine.x !== 0 && clickNearestImp !== undefined){
+      updateClickLine(clickNearestImp.x, clickNearestImp.y, game.input.x, game.input.y );
+    }
+
+    // Keep track of elapsed time/etc
+    this.updateTimer();
+  },
+
+  render: function() {
+    game.debug.geom(clickLine, '#ff0000');
+  }
 };
+
+gamePlayScreen.prototype.updateTimer = function() {
+
+  if(game.startTime === undefined) { game.startTime = 0; }
+  if(game.elapsedTime === undefined) { game.elapsedTime = 0; }
+  if(game.previousElapsedTime === undefined) { game.previousElapsedTime = 0; }
+  if(game.timeSinceLastTick === undefined) { game.timeSinceLastTick = 0; }
+
+  // Time Tracking
+  game.elapsedTime = game.time.time - game.startTime;
+  if(game.previousElapsedTime === 0) {
+    game.previousElapsedTime = game.elapsedTime;
+  }
+  game.timeSinceLastTick = game.elapsedTime - game.previousElapsedTime;
+  game.previousElapsedTime = game.elapsedTime;                                          // We are finished previous time at time point
+};
+
+
+
+
+function spawnImps(count) {
+
+  // Initialize the imp physics group if not already
+  if(impObjectGroup === undefined) {
+    impObjectGroup = game.add.physicsGroup(Phaser.Physics.P2JS);
+  }
+
+  // Create new Imps up to the count provided.
+  for(var i = 0; i < count; ++i) {
+    var imp = new game.Imp(game, 'spritesheet_imp_one');
+    game.add.existing(imp);
+    impObjectGroup.add(imp);
+    game.totalImpCount++;
+  }
+}
+
+
+
+
+
+
+
+
+function updateClickLine(x1, y1, x2, y2) {
+  clickLine.start.x = x1;
+  clickLine.start.y = y1;
+  clickLine.end.x =  x2;
+  clickLine.end.y = y2;
+}
+
+function setupClickLine() {
+
+  var clickDown = function(e) {
+    clickNearestImp = getNearest(impObjectGroup, game.input);
+    clickPoint = {x:game.input.x, y:game.input.y};
+    updateClickLine(clickNearestImp.x, clickNearestImp.y, clickPoint.x, clickPoint.y );
+  };
+
+  var release = function(e) {
+    updateClickLine(0, 0, 0, 0);
+    clickNearestImp.Target = {x: e.x, y: e.y};
+    clickCircle.setTo(e.x, e.y, 2);
+    clickSoundEffect.play();
+  };
+
+  game.input.onDown.add(function(e) { clickDown(e); }, this);
+  game.input.onUp.add(function(e) { release(e); }, this);
+}
+
+
+
+
+
+
+
+
+function getNearest(arrIn, pointIn) {
+  var nearest = null;
+  var currentNearestDistance = 10000000000000;
+  var dist;
+  arrIn.forEach(function(obj){
+    dist = getDistance(pointIn, obj.position);
+    if(dist < currentNearestDistance) {
+      currentNearestDistance = dist;
+      nearest = obj;
+    }
+  });
+  return nearest || null;
+}
+
+function getDistance(pointA, pointB){
+  return Math.sqrt( Math.pow((pointA.x-pointB.x), 2) + Math.pow((pointA.y-pointB.y), 2) );
+}
 
 },{}],5:[function(require,module,exports){
 var instructionScreen = function(){};
@@ -254,14 +402,16 @@ winScreen.prototype = {
 };
 
 },{}],10:[function(require,module,exports){
-var Imp = function(game, spawn, spriteSheet) {
+var Imp = function(game, spriteSheet) {
 
   // Bit of prep work
   var impScale = 0.1;
   var frames = game.cache.getFrameData(spriteSheet).getFrames();
+  var impSpawn = this.getSpawnLocation();
 
   // Instansiate
-  Phaser.Sprite.call(this, game, spawn.x, spawn.y, spriteSheet);
+  Phaser.Sprite.call(this, game, impSpawn.position.x, impSpawn.position.y, spriteSheet);
+  this.id = 'imp_'+game.totalImpCount;
 
   // Appearance
   this.scale.setTo(impScale, impScale);
@@ -273,12 +423,112 @@ var Imp = function(game, spawn, spriteSheet) {
   game.physics.p2.enable(this, false);
   this.anchor.y = 0.33;
   this.body.setCircle((frames[0].width * impScale) / 3.3);
+  this.body.damping = (game.constants.imp.damping * impScale);
+  this.body.rotation = impSpawn.rotation;
+  this.body.health = game.constants.imp.startHealth;
+
+  // Collisions with other objects
+  this.body.collideWorldBounds = false;
+  this.body.setCollisionGroup(game.worldCollideGroup);
+  this.body.onBeginContact.add(this.beginCollision, this);
 
 };
 
 Imp.prototype = Object.create(Phaser.Sprite.prototype);
 Imp.prototype.constructor = Imp;
-Imp.prototype.update = function() {};
+Imp.prototype.update = function() {
+
+  if(this.Target !== null) {
+    this.accelerateToObject(this, this.Target, game.constants.imp.baseThrust);
+    this.turnToFace(this, this.Target);
+    var distanceFromTarget = this.getDistance(this, this.Target);
+    if(distanceFromTarget < game.constants.imp.targetOffset) {
+      this.Target = null;
+    }
+  } else {
+      this.body.thrust(game.constants.imp.baseThrust);
+  }
+
+};
+Imp.prototype.Target = null;
+
+
+Imp.prototype.beginCollision = function(body, bodyB, shapeA, shapeB, equation) {
+  console.log('collision');
+
+  if(body && body.health) {
+    body.health -= game.constants.imp.bumpDamange;
+  } else if(bodyB && bodyB.health) {
+    bodyB.health -= game.constants.imp.bumpDamange;
+  } else if(this.body && this.body.health) {
+    this.body.health -= game.constants.imp.bumpDamange;
+  }
+
+  /*
+  playBump(); // boiiing
+  playOuch(); // sometimes says ouch
+   */
+};
+
+Imp.prototype.getSpawnLocation = function() {
+  var theReturn = {
+    position : {
+      x: 0,
+      y: 0
+    },
+    rotation: 0
+  };
+
+  var result = Math.floor((Math.random() * 3) + 1);
+  if (result ===1){ // top wall
+    theReturn.position.y = 10;
+    theReturn.position.x = game.world.randomX;
+    theReturn.rotation = (Math.random() * 2)+2;
+  } else if (result ===2){ // bottom wall
+    theReturn.position.y = game.height -10;
+    theReturn.position.x = game.world.randomX;
+    theReturn.rotation = (Math.random() * 2)-1;
+  } else if (result ===3){ // right wall
+    theReturn.position.y = game.world.randomY;
+    theReturn.position.x = game.width-10;
+    theReturn.rotation = (Math.random() * 2.8)+2.5;
+  }
+
+  return theReturn;
+
+};
+
+Imp.prototype.turnToFace = function(obj1, obj2) {
+
+  var point1 = new Phaser.Point(obj1.x, obj1.y);
+  var point2 = new Phaser.Point(obj2.x, obj2.y);
+  var targetAngle = point1.angle(point2) + game.math.degToRad(90);
+  var difference = targetAngle - obj1.body.rotation;
+
+  if (difference > game.math.PI) {
+    difference = ((2 * game.math) - difference);
+  }
+  if (difference < -game.math.PI) {
+    difference = ((2 * game.math) + difference);
+  }
+
+  // Move the character's rotation a set amount per unit time
+  var delta = (difference < 0) ? -game.constants.imp.rotationSpeed : game.constants.imp.rotationSpeed;
+  var rotateDiff = delta * game.timeSinceLastTick;
+  obj1.body.rotation += rotateDiff;
+
+};
+
+Imp.prototype.accelerateToObject = function(obj1, obj2, speed) {
+  if(typeof speed === 'undefined') { speed = game.constants.imp.baseThrust; }
+  var angle = Math.atan2(obj2.y - obj1.y, obj2.x - obj1.x);
+  obj1.body.force.x = Math.cos(angle) * speed;
+  obj1.body.force.y = Math.sin(angle) * speed;
+};
+
+Imp.prototype.getDistance = function(pointA, pointB){
+  return Math.sqrt( Math.pow((pointA.x-pointB.x), 2) + Math.pow((pointA.y-pointB.y), 2) );
+};
 
 
 module.exports = Imp;
@@ -314,6 +564,26 @@ window.onload = function() {
   game.constants = constants;
   game.Imp = require('./game/sprites/imp');
 
+  game.turnToFace = function(obj1, obj2) {
+
+    var point1 = new Phaser.Point(obj1.x, obj1.y);
+    var point2 = new Phaser.Point(obj2.x, obj2.y);
+    var targetAngle = point1.angle(point2) + game.math.degToRad(90);
+    var difference = targetAngle - obj1.body.rotation;
+
+    if (difference > game.math.PI) {
+      difference = ((2 * game.math) - difference);
+    }
+    if (difference < -game.math.PI) {
+      difference = ((2 * game.math) + difference);
+    }
+
+    // Move the character's rotation a set amount per unit time
+    var delta = (difference < 0) ? -game.constants.imp.rotationSpeed : game.constants.imp.rotationSpeed;
+    var rotateDiff = delta * timeSinceLastTick;
+    obj1.body.rotation += rotateDiff;
+
+  };
 
   // Ready to go
   this.game = game;

@@ -10,6 +10,25 @@ module.exports = function() {
 
     physics: {
       restitution: 5
+    },
+
+    game: {
+      start: {
+        impCount: 6
+      }
+    },
+
+    imp: {
+      startHealth: 100,
+      spawnRate: '',
+
+      bumpDamage: 15,
+      damping: 6,
+
+      baseThrust: 50,
+      rotationSpeed: 0.0025,
+
+      targetOffset: 30,               // Within this distance the target will be dropped
     }
 
   };

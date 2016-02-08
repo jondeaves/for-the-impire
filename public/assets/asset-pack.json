@@ -84,26 +84,8 @@
     },
     {
       "type": "audio",
-      "key": "bump1",
-      "urls": ["/assets/gameplayScreen/sfx/bump1.mp3"],
-      "autoDecode": true
-    },
-    {
-      "type": "audio",
-      "key": "bump2",
-      "urls": ["/assets/gameplayScreen/sfx/bump2.mp3"],
-      "autoDecode": true
-    },
-    {
-      "type": "audio",
-      "key": "bump3",
-      "urls": ["/assets/gameplayScreen/sfx/bump3.mp3"],
-      "autoDecode": true
-    },
-    {
-      "type": "audio",
-      "key": "bump4",
-      "urls": ["/assets/gameplayScreen/sfx/bump4.mp3"],
+      "key": "click_sfx",
+      "urls": ["/assets/gameplayScreen/sfx/click.mp3"],
       "autoDecode": true
     },
 

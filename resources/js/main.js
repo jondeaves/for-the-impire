@@ -28,6 +28,26 @@ window.onload = function() {
   game.constants = constants;
   game.Imp = require('./game/sprites/imp');
 
+  game.turnToFace = function(obj1, obj2) {
+
+    var point1 = new Phaser.Point(obj1.x, obj1.y);
+    var point2 = new Phaser.Point(obj2.x, obj2.y);
+    var targetAngle = point1.angle(point2) + game.math.degToRad(90);
+    var difference = targetAngle - obj1.body.rotation;
+
+    if (difference > game.math.PI) {
+      difference = ((2 * game.math) - difference);
+    }
+    if (difference < -game.math.PI) {
+      difference = ((2 * game.math) + difference);
+    }
+
+    // Move the character's rotation a set amount per unit time
+    var delta = (difference < 0) ? -game.constants.imp.rotationSpeed : game.constants.imp.rotationSpeed;
+    var rotateDiff = delta * timeSinceLastTick;
+    obj1.body.rotation += rotateDiff;
+
+  };
 
   // Ready to go
   this.game = game;
