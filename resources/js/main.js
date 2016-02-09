@@ -25,6 +25,8 @@ window.onload = function() {
 
 
   // Connect things
+  game.impDeaths = 0; // End goal tracking
+  game.impWins = 0;   // End goal tracking
   game.constants = constants;
   game.Imp = require('./game/sprites/imp');
 

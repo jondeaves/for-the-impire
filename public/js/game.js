@@ -6,7 +6,8 @@ module.exports = function() {
       minWidth: 600,
       minHeight: 360,
       width: 1280,
-      height: 720
+      height: 720,
+      boundOffset: 50
     },
 
     physics: {
@@ -15,21 +16,34 @@ module.exports = function() {
 
     game: {
       start: {
-        impCount: 6
+        impCount: 2
+      },
+      spawn: {
+        rate: 2500,   // Time in milliseconds between spawn attemtps
+        chance: 60    // Percentage of chance a spawn succeeds
       }
+
     },
 
     imp: {
-      startHealth: 100,
+      ttl: 30,                        // Number of seconds to live
+      startHealth: 110,
       spawnRate: '',
 
       bumpDamage: 15,
       damping: 6,
 
+      maxVelocity: 5,
       baseThrust: 50,
       rotationSpeed: 0.0025,
 
       targetOffset: 30,               // Within this distance the target will be dropped
+
+
+      deathDuration: 1000,
+      deathSpinSpeedIncrement: 0.075,   // Speed increase by this much each time
+      deathSpinSpeed: 8,
+      deathScaleSpeed: 0.001,
     }
 
   };
@@ -85,13 +99,12 @@ creditScreen.prototype = {
 var gamePlayScreen = function(){};
 module.exports = gamePlayScreen;
 
+
 // Track in-game objects
 var impObjectGroup;
 
-
 // Audio
 var clickSoundEffect;
-
 
 // Tracking line for clicks
 var clickLine = new Phaser.Line(0, 0, 0, 0);
@@ -118,27 +131,21 @@ gamePlayScreen.prototype = {
     game.worldCollideGroup = game.physics.p2.createCollisionGroup();
 
 
-    // Click Handler
+    // Level setup
     setupClickLine();
+    this.setupAudio();
 
 
-    // Testing audio
-    var gameplayBgMusic = game.add.audio('music_game_bg');
-    gameplayBgMusic.play();
-    gameplayBgMusic.loopFull(1);
-
-    clickSoundEffect = game.add.audio('click_sfx');
-
-
-    // Testing our sprite
-    spawnImps(game.constants.game.start.impCount);
+    // Spawn time imps
+    this.spawnImps(game.constants.game.start.impCount, true);
 
   },
 
   update: function(){
 
-    // Update click line if present
-    if(clickLine.x !== 0 && clickNearestImp !== undefined){
+    // Update click line and circle if present
+    handleClickCircle();
+    if(clickLine.x !== 0 && clickNearestImp !== undefined && clickNearestImp !== null){
       updateClickLine(clickNearestImp.x, clickNearestImp.y, game.input.x, game.input.y );
     }
 
@@ -148,7 +155,32 @@ gamePlayScreen.prototype = {
 
   render: function() {
     game.debug.geom(clickLine, '#ff0000');
+    game.debug.geom(clickCircle,'#cfffff', false);
   }
+};
+
+gamePlayScreen.prototype.setupAudio = function () {
+
+  // BG Music
+  var gameplayBgMusic = game.add.audio('music_game_bg');
+  gameplayBgMusic.play();
+  gameplayBgMusic.loopFull(1);
+
+  game.soundeffects = {
+    'click': game.add.audio('click_sfx'),
+
+    'bump1': game.add.audio('bump1_sfx'),
+    'bump2': game.add.audio('bump2_sfx'),
+    'bump3': game.add.audio('bump3_sfx'),
+    'bump4': game.add.audio('bump4_sfx'),
+    'crash': game.add.audio('crash_sfx'),
+
+    'impudent': game.add.audio('impudent_vox'),
+    'nuuuu': game.add.audio('nuuuu_vox'),
+    'whoop': game.add.audio('whoop_vox'),
+    'impaled': game.add.audio('impaled_vox')
+  };
+
 };
 
 gamePlayScreen.prototype.updateTimer = function() {
@@ -167,10 +199,9 @@ gamePlayScreen.prototype.updateTimer = function() {
   game.previousElapsedTime = game.elapsedTime;                                          // We are finished previous time at time point
 };
 
+gamePlayScreen.prototype.spawnImps = function(count, first) {
 
-
-
-function spawnImps(count) {
+  if(first === undefined) { first = false; }
 
   // Initialize the imp physics group if not already
   if(impObjectGroup === undefined) {
@@ -179,19 +210,46 @@ function spawnImps(count) {
 
   // Create new Imps up to the count provided.
   for(var i = 0; i < count; ++i) {
-    var imp = new game.Imp(game, 'spritesheet_imp_one');
-    game.add.existing(imp);
-    impObjectGroup.add(imp);
-    game.totalImpCount++;
+
+    // Randomize chance of spawning
+    var canSpawn = false;
+    if(first) {
+      canSpawn = true;
+    } else {
+      var spawnRndChecker = game.rnd.integerInRange(0, 100);
+      if(spawnRndChecker <= game.constants.game.spawn.chance) {
+        canSpawn = true;
+      }
+    }
+
+    if(canSpawn) {
+      var imp = new game.Imp(game, 'spritesheet_imp_one');
+      game.add.existing(imp);
+      impObjectGroup.add(imp);
+      game.totalImpCount++;
+    }
+
+  }
+
+
+  // Schedule the next spawn
+  game.time.events.add(game.constants.game.spawn.rate, function(){
+    this.spawnImps(1);
+  }, this);
+
+};
+
+
+
+
+
+function handleClickCircle(){
+  if(clickCircle.radius >= 35) {
+    clickCircle.setTo(0, 0, 0);
+  } else if(clickCircle.radius > 0) {
+    clickCircle.radius += 2;
   }
 }
-
-
-
-
-
-
-
 
 function updateClickLine(x1, y1, x2, y2) {
   clickLine.start.x = x1;
@@ -205,14 +263,18 @@ function setupClickLine() {
   var clickDown = function(e) {
     clickNearestImp = getNearest(impObjectGroup, game.input);
     clickPoint = {x:game.input.x, y:game.input.y};
-    updateClickLine(clickNearestImp.x, clickNearestImp.y, clickPoint.x, clickPoint.y );
+    if(clickNearestImp !== undefined && clickNearestImp !== null) {
+      updateClickLine(clickNearestImp.x, clickNearestImp.y, clickPoint.x, clickPoint.y );
+    }
   };
 
   var release = function(e) {
     updateClickLine(0, 0, 0, 0);
-    clickNearestImp.Target = {x: e.x, y: e.y};
-    clickCircle.setTo(e.x, e.y, 2);
-    clickSoundEffect.play();
+    if(clickNearestImp !== undefined && clickNearestImp !== null) {
+      clickNearestImp.Target = {x: e.x, y: e.y};
+    }
+    clickCircle.setTo(game.input.x, game.input.y, 2);
+    game.soundeffects.click.play();
   };
 
   game.input.onDown.add(function(e) { clickDown(e); }, this);
@@ -430,13 +492,41 @@ var Imp = function(game, spriteSheet) {
   // Collisions with other objects
   this.body.collideWorldBounds = false;
   this.body.setCollisionGroup(game.worldCollideGroup);
+  this.body.collides([game.worldCollideGroup]);
   this.body.onBeginContact.add(this.beginCollision, this);
+
+  // Death
+  this.deathSpinSpeed = game.constants.imp.deathSpinSpeed;
+  game.time.events.add(1000, function(){
+    this.updateTTL();
+  }, this);
 
 };
 
 Imp.prototype = Object.create(Phaser.Sprite.prototype);
 Imp.prototype.constructor = Imp;
 Imp.prototype.update = function() {
+  this.UpdateMovement();
+  this.UpdateHealth();
+};
+
+Imp.prototype.UpdateMovement = function() {
+
+  // Check if we are within
+  var isOutside =
+    (this.x+this.width < 0 - game.constants.world.boundOffset) || // off to left
+    (this.y+this.height < 0 - game.constants.world.boundOffset) || // off to top
+    (this.x > game.width + game.constants.world.boundOffset) || // off to right
+    (this.y > game.height + game.constants.world.boundOffset); // off to left
+
+  if(isOutside) {
+    this.Target = null;
+    var point1 = new Phaser.Point(this.x, this.y);
+    var point2 = new Phaser.Point(game.width / 2, game.height / 2);
+    var targetAngle = point1.angle(point2) + game.math.degToRad(90);
+    this.body.rotation = targetAngle;
+  }
+
 
   if(this.Target !== null) {
     this.accelerateToObject(this, this.Target, game.constants.imp.baseThrust);
@@ -449,25 +539,127 @@ Imp.prototype.update = function() {
       this.body.thrust(game.constants.imp.baseThrust);
   }
 
+
+  // Limit max speed
+  this.constrainVelocity();
 };
+
+Imp.prototype.constrainVelocity = function() {
+  var body = this.body;
+  var maxVelocity = game.constants.imp.maxVelocity;
+  var angle, currVelocitySqr, vx, vy;
+
+  vx = body.data.velocity[0];
+  vy = body.data.velocity[1];
+
+  currVelocitySqr = vx * vx + vy * vy;
+
+  if(currVelocitySqr > maxVelocity * maxVelocity) {
+    angle = Math.atan2(vy, vx);
+
+    vx = Math.cos(angle) * maxVelocity;
+    vy = Math.sin(angle) * maxVelocity;
+
+    body.data.velocity[0] = vx;
+    body.data.velocity[1] = vy;
+  }
+};
+
+Imp.prototype.UpdateHealth = function() {
+
+  // Are we ready to die?
+  if(this.body.health <= 0 && !this.isDying) {
+
+    this.isDying = true;
+    game.soundeffects.impaled.play();
+    this.animations.play('death', 10, true);
+
+    game.time.events.add(game.constants.imp.deathDuration, function(){
+      game.soundeffects.crash.play();
+      // addBlobs({x:this.x, y:this.y}, Math.floor((Math.random() * 12) + 8));
+      this.destroy();
+      this.isDying = false;
+    }, this);
+
+
+    // Finally
+    game.impDeaths++;   // One step closer to lose screen
+
+  }
+
+
+  // Animate if we are dying, by rotating and shrinking
+  if(this.isDying) {
+    this.body.rotation += game.math.degToRad(game.constants.imp.deathSpinSpeed);
+    var newScaleX = this.scale.x - game.constants.imp.deathScaleSpeed;
+    var newScaleY = this.scale.y - game.constants.imp.deathScaleSpeed;
+
+    this.scale.setTo(newScaleX, newScaleY);
+    this.deathSpinSpeed += game.constants.imp.deathSpinSpeedIncrement;
+  }
+
+};
+
+
+Imp.prototype.updateTTL = function() {
+  if(this.body !== null) {
+    var healthLossPerSecond = game.constants.imp.startHealth / game.constants.imp.ttl;
+    this.body.health -= healthLossPerSecond;
+
+    // Keep the loop going every second until imp is dead
+    if(this.body.health > 0) {
+      game.time.events.add(1000, function(){
+        this.updateTTL();
+      }, this);
+    }
+  }
+};
+
+
+
+
 Imp.prototype.Target = null;
+Imp.prototype.isDying = false;
+Imp.prototype.deathSpinSpeed = 0;
 
 
 Imp.prototype.beginCollision = function(body, bodyB, shapeA, shapeB, equation) {
-  console.log('collision');
 
   if(body && body.health) {
-    body.health -= game.constants.imp.bumpDamange;
+    body.health -= game.constants.imp.bumpDamage;
   } else if(bodyB && bodyB.health) {
-    bodyB.health -= game.constants.imp.bumpDamange;
+    bodyB.health -= game.constants.imp.bumpDamage;
   } else if(this.body && this.body.health) {
-    this.body.health -= game.constants.imp.bumpDamange;
+    this.body.health -= game.constants.imp.bumpDamage;
   }
 
-  /*
-  playBump(); // boiiing
-  playOuch(); // sometimes says ouch
-   */
+  // Bump Sound
+  this.playBump();
+  this.playOuch();
+};
+
+Imp.prototype.playBump = function() {
+  var result = Math.floor((Math.random() * 4) + 1);
+  if (result ===1){
+    game.soundeffects.bump1.play();
+  } else if (result ===2){
+    game.soundeffects.bump2.play();
+  } else if (result ===3){
+    game.soundeffects.bump3.play();
+  } else if (result === 4){
+    game.soundeffects.bump4.play();
+  }
+};
+
+Imp.prototype.playOuch = function() {
+  var result = Math.floor((Math.random() * 6) + 1);
+  if (result ===1){
+    game.soundeffects.impudent.play();
+  } else if (result ===2){
+    game.soundeffects.nuuuu.play();
+  } else if (result ===3){
+    game.soundeffects.whoop.play();
+  }
 };
 
 Imp.prototype.getSpawnLocation = function() {
@@ -561,6 +753,8 @@ window.onload = function() {
 
 
   // Connect things
+  game.impDeaths = 0; // End goal tracking
+  game.impWins = 0;   // End goal tracking
   game.constants = constants;
   game.Imp = require('./game/sprites/imp');
 

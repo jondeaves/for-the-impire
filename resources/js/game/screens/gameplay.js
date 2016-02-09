@@ -1,13 +1,12 @@
 var gamePlayScreen = function(){};
 module.exports = gamePlayScreen;
 
+
 // Track in-game objects
 var impObjectGroup;
 
-
 // Audio
 var clickSoundEffect;
-
 
 // Tracking line for clicks
 var clickLine = new Phaser.Line(0, 0, 0, 0);
@@ -34,27 +33,21 @@ gamePlayScreen.prototype = {
     game.worldCollideGroup = game.physics.p2.createCollisionGroup();
 
 
-    // Click Handler
+    // Level setup
     setupClickLine();
+    this.setupAudio();
 
 
-    // Testing audio
-    var gameplayBgMusic = game.add.audio('music_game_bg');
-    gameplayBgMusic.play();
-    gameplayBgMusic.loopFull(1);
-
-    clickSoundEffect = game.add.audio('click_sfx');
-
-
-    // Testing our sprite
-    spawnImps(game.constants.game.start.impCount);
+    // Spawn time imps
+    this.spawnImps(game.constants.game.start.impCount, true);
 
   },
 
   update: function(){
 
-    // Update click line if present
-    if(clickLine.x !== 0 && clickNearestImp !== undefined){
+    // Update click line and circle if present
+    handleClickCircle();
+    if(clickLine.x !== 0 && clickNearestImp !== undefined && clickNearestImp !== null){
       updateClickLine(clickNearestImp.x, clickNearestImp.y, game.input.x, game.input.y );
     }
 
@@ -64,7 +57,32 @@ gamePlayScreen.prototype = {
 
   render: function() {
     game.debug.geom(clickLine, '#ff0000');
+    game.debug.geom(clickCircle,'#cfffff', false);
   }
+};
+
+gamePlayScreen.prototype.setupAudio = function () {
+
+  // BG Music
+  var gameplayBgMusic = game.add.audio('music_game_bg');
+  gameplayBgMusic.play();
+  gameplayBgMusic.loopFull(1);
+
+  game.soundeffects = {
+    'click': game.add.audio('click_sfx'),
+
+    'bump1': game.add.audio('bump1_sfx'),
+    'bump2': game.add.audio('bump2_sfx'),
+    'bump3': game.add.audio('bump3_sfx'),
+    'bump4': game.add.audio('bump4_sfx'),
+    'crash': game.add.audio('crash_sfx'),
+
+    'impudent': game.add.audio('impudent_vox'),
+    'nuuuu': game.add.audio('nuuuu_vox'),
+    'whoop': game.add.audio('whoop_vox'),
+    'impaled': game.add.audio('impaled_vox')
+  };
+
 };
 
 gamePlayScreen.prototype.updateTimer = function() {
@@ -83,10 +101,9 @@ gamePlayScreen.prototype.updateTimer = function() {
   game.previousElapsedTime = game.elapsedTime;                                          // We are finished previous time at time point
 };
 
+gamePlayScreen.prototype.spawnImps = function(count, first) {
 
-
-
-function spawnImps(count) {
+  if(first === undefined) { first = false; }
 
   // Initialize the imp physics group if not already
   if(impObjectGroup === undefined) {
@@ -95,19 +112,46 @@ function spawnImps(count) {
 
   // Create new Imps up to the count provided.
   for(var i = 0; i < count; ++i) {
-    var imp = new game.Imp(game, 'spritesheet_imp_one');
-    game.add.existing(imp);
-    impObjectGroup.add(imp);
-    game.totalImpCount++;
+
+    // Randomize chance of spawning
+    var canSpawn = false;
+    if(first) {
+      canSpawn = true;
+    } else {
+      var spawnRndChecker = game.rnd.integerInRange(0, 100);
+      if(spawnRndChecker <= game.constants.game.spawn.chance) {
+        canSpawn = true;
+      }
+    }
+
+    if(canSpawn) {
+      var imp = new game.Imp(game, 'spritesheet_imp_one');
+      game.add.existing(imp);
+      impObjectGroup.add(imp);
+      game.totalImpCount++;
+    }
+
+  }
+
+
+  // Schedule the next spawn
+  game.time.events.add(game.constants.game.spawn.rate, function(){
+    this.spawnImps(1);
+  }, this);
+
+};
+
+
+
+
+
+function handleClickCircle(){
+  if(clickCircle.radius >= 35) {
+    clickCircle.setTo(0, 0, 0);
+  } else if(clickCircle.radius > 0) {
+    clickCircle.radius += 2;
   }
 }
-
-
-
-
-
-
-
 
 function updateClickLine(x1, y1, x2, y2) {
   clickLine.start.x = x1;
@@ -121,14 +165,18 @@ function setupClickLine() {
   var clickDown = function(e) {
     clickNearestImp = getNearest(impObjectGroup, game.input);
     clickPoint = {x:game.input.x, y:game.input.y};
-    updateClickLine(clickNearestImp.x, clickNearestImp.y, clickPoint.x, clickPoint.y );
+    if(clickNearestImp !== undefined && clickNearestImp !== null) {
+      updateClickLine(clickNearestImp.x, clickNearestImp.y, clickPoint.x, clickPoint.y );
+    }
   };
 
   var release = function(e) {
     updateClickLine(0, 0, 0, 0);
-    clickNearestImp.Target = {x: e.x, y: e.y};
-    clickCircle.setTo(e.x, e.y, 2);
-    clickSoundEffect.play();
+    if(clickNearestImp !== undefined && clickNearestImp !== null) {
+      clickNearestImp.Target = {x: e.x, y: e.y};
+    }
+    clickCircle.setTo(game.input.x, game.input.y, 2);
+    game.soundeffects.click.play();
   };
 
   game.input.onDown.add(function(e) { clickDown(e); }, this);

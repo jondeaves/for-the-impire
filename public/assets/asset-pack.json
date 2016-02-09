@@ -82,10 +82,68 @@
       "urls": ["/assets/gameplayScreen/music/music_game_bg.mp3"],
       "autoDecode": true
     },
+
+
+
     {
       "type": "audio",
       "key": "click_sfx",
       "urls": ["/assets/gameplayScreen/sfx/click.mp3"],
+      "autoDecode": true
+    },
+    {
+      "type": "audio",
+      "key": "bump1_sfx",
+      "urls": ["/assets/gameplayScreen/sfx/bump1.mp3"],
+      "autoDecode": true
+    },
+    {
+      "type": "audio",
+      "key": "bump2_sfx",
+      "urls": ["/assets/gameplayScreen/sfx/bump2.mp3"],
+      "autoDecode": true
+    },
+    {
+      "type": "audio",
+      "key": "bump3_sfx",
+      "urls": ["/assets/gameplayScreen/sfx/bump3.mp3"],
+      "autoDecode": true
+    },
+    {
+      "type": "audio",
+      "key": "bump4_sfx",
+      "urls": ["/assets/gameplayScreen/sfx/bump4.mp3"],
+      "autoDecode": true
+    },
+    {
+      "type": "audio",
+      "key": "crash_sfx",
+      "urls": ["/assets/gameplayScreen/sfx/crash.mp3"],
+      "autoDecode": true
+    },
+
+    {
+      "type": "audio",
+      "key": "impudent_vox",
+      "urls": ["/assets/gameplayScreen/vox/impudent.mp3"],
+      "autoDecode": true
+    },
+    {
+      "type": "audio",
+      "key": "nuuuu_vox",
+      "urls": ["/assets/gameplayScreen/vox/nuuuu.mp3"],
+      "autoDecode": true
+    },
+    {
+      "type": "audio",
+      "key": "whoop_vox",
+      "urls": ["/assets/gameplayScreen/vox/whoop.mp3"],
+      "autoDecode": true
+    },
+    {
+      "type": "audio",
+      "key": "impaled_vox",
+      "urls": ["/assets/gameplayScreen/vox/impaled.mp3"],
       "autoDecode": true
     },
 

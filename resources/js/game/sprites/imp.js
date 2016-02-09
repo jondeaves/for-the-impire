@@ -26,13 +26,41 @@ var Imp = function(game, spriteSheet) {
   // Collisions with other objects
   this.body.collideWorldBounds = false;
   this.body.setCollisionGroup(game.worldCollideGroup);
+  this.body.collides([game.worldCollideGroup]);
   this.body.onBeginContact.add(this.beginCollision, this);
+
+  // Death
+  this.deathSpinSpeed = game.constants.imp.deathSpinSpeed;
+  game.time.events.add(1000, function(){
+    this.updateTTL();
+  }, this);
 
 };
 
 Imp.prototype = Object.create(Phaser.Sprite.prototype);
 Imp.prototype.constructor = Imp;
 Imp.prototype.update = function() {
+  this.UpdateMovement();
+  this.UpdateHealth();
+};
+
+Imp.prototype.UpdateMovement = function() {
+
+  // Check if we are within
+  var isOutside =
+    (this.x+this.width < 0 - game.constants.world.boundOffset) || // off to left
+    (this.y+this.height < 0 - game.constants.world.boundOffset) || // off to top
+    (this.x > game.width + game.constants.world.boundOffset) || // off to right
+    (this.y > game.height + game.constants.world.boundOffset); // off to left
+
+  if(isOutside) {
+    this.Target = null;
+    var point1 = new Phaser.Point(this.x, this.y);
+    var point2 = new Phaser.Point(game.width / 2, game.height / 2);
+    var targetAngle = point1.angle(point2) + game.math.degToRad(90);
+    this.body.rotation = targetAngle;
+  }
+
 
   if(this.Target !== null) {
     this.accelerateToObject(this, this.Target, game.constants.imp.baseThrust);
@@ -45,25 +73,127 @@ Imp.prototype.update = function() {
       this.body.thrust(game.constants.imp.baseThrust);
   }
 
+
+  // Limit max speed
+  this.constrainVelocity();
 };
+
+Imp.prototype.constrainVelocity = function() {
+  var body = this.body;
+  var maxVelocity = game.constants.imp.maxVelocity;
+  var angle, currVelocitySqr, vx, vy;
+
+  vx = body.data.velocity[0];
+  vy = body.data.velocity[1];
+
+  currVelocitySqr = vx * vx + vy * vy;
+
+  if(currVelocitySqr > maxVelocity * maxVelocity) {
+    angle = Math.atan2(vy, vx);
+
+    vx = Math.cos(angle) * maxVelocity;
+    vy = Math.sin(angle) * maxVelocity;
+
+    body.data.velocity[0] = vx;
+    body.data.velocity[1] = vy;
+  }
+};
+
+Imp.prototype.UpdateHealth = function() {
+
+  // Are we ready to die?
+  if(this.body.health <= 0 && !this.isDying) {
+
+    this.isDying = true;
+    game.soundeffects.impaled.play();
+    this.animations.play('death', 10, true);
+
+    game.time.events.add(game.constants.imp.deathDuration, function(){
+      game.soundeffects.crash.play();
+      // addBlobs({x:this.x, y:this.y}, Math.floor((Math.random() * 12) + 8));
+      this.destroy();
+      this.isDying = false;
+    }, this);
+
+
+    // Finally
+    game.impDeaths++;   // One step closer to lose screen
+
+  }
+
+
+  // Animate if we are dying, by rotating and shrinking
+  if(this.isDying) {
+    this.body.rotation += game.math.degToRad(game.constants.imp.deathSpinSpeed);
+    var newScaleX = this.scale.x - game.constants.imp.deathScaleSpeed;
+    var newScaleY = this.scale.y - game.constants.imp.deathScaleSpeed;
+
+    this.scale.setTo(newScaleX, newScaleY);
+    this.deathSpinSpeed += game.constants.imp.deathSpinSpeedIncrement;
+  }
+
+};
+
+
+Imp.prototype.updateTTL = function() {
+  if(this.body !== null) {
+    var healthLossPerSecond = game.constants.imp.startHealth / game.constants.imp.ttl;
+    this.body.health -= healthLossPerSecond;
+
+    // Keep the loop going every second until imp is dead
+    if(this.body.health > 0) {
+      game.time.events.add(1000, function(){
+        this.updateTTL();
+      }, this);
+    }
+  }
+};
+
+
+
+
 Imp.prototype.Target = null;
+Imp.prototype.isDying = false;
+Imp.prototype.deathSpinSpeed = 0;
 
 
 Imp.prototype.beginCollision = function(body, bodyB, shapeA, shapeB, equation) {
-  console.log('collision');
 
   if(body && body.health) {
-    body.health -= game.constants.imp.bumpDamange;
+    body.health -= game.constants.imp.bumpDamage;
   } else if(bodyB && bodyB.health) {
-    bodyB.health -= game.constants.imp.bumpDamange;
+    bodyB.health -= game.constants.imp.bumpDamage;
   } else if(this.body && this.body.health) {
-    this.body.health -= game.constants.imp.bumpDamange;
+    this.body.health -= game.constants.imp.bumpDamage;
   }
 
-  /*
-  playBump(); // boiiing
-  playOuch(); // sometimes says ouch
-   */
+  // Bump Sound
+  this.playBump();
+  this.playOuch();
+};
+
+Imp.prototype.playBump = function() {
+  var result = Math.floor((Math.random() * 4) + 1);
+  if (result ===1){
+    game.soundeffects.bump1.play();
+  } else if (result ===2){
+    game.soundeffects.bump2.play();
+  } else if (result ===3){
+    game.soundeffects.bump3.play();
+  } else if (result === 4){
+    game.soundeffects.bump4.play();
+  }
+};
+
+Imp.prototype.playOuch = function() {
+  var result = Math.floor((Math.random() * 6) + 1);
+  if (result ===1){
+    game.soundeffects.impudent.play();
+  } else if (result ===2){
+    game.soundeffects.nuuuu.play();
+  } else if (result ===3){
+    game.soundeffects.whoop.play();
+  }
 };
 
 Imp.prototype.getSpawnLocation = function() {
