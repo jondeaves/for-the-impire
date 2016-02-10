@@ -3,7 +3,7 @@ var Imp = function(game, spriteSheet) {
   // Bit of prep work
   var impScale = 0.1;
   var frames = game.cache.getFrameData(spriteSheet).getFrames();
-  var impSpawn = this.getSpawnLocation();
+  var impSpawn = this.GetSpawnLocation();
 
   // Instansiate
   Phaser.Sprite.call(this, game, impSpawn.position.x, impSpawn.position.y, spriteSheet);
@@ -27,12 +27,12 @@ var Imp = function(game, spriteSheet) {
   this.body.collideWorldBounds = false;
   this.body.setCollisionGroup(game.worldCollideGroup);
   this.body.collides([game.worldCollideGroup]);
-  this.body.onBeginContact.add(this.beginCollision, this);
+  this.body.onBeginContact.add(this.BeginCollision, this);
 
   // Death
   this.deathSpinSpeed = game.constants.imp.deathSpinSpeed;
   game.time.events.add(1000, function(){
-    this.updateTTL();
+    this.UpdateTTL();
   }, this);
 
 };
@@ -44,41 +44,53 @@ Imp.prototype.update = function() {
   this.UpdateHealth();
 };
 
+
+// Properties
+Imp.prototype.Target = null;
+Imp.prototype.isDying = false;
+Imp.prototype.deathSpinSpeed = 0;
+Imp.prototype.CanMove = true;
+
+
+// Imp Specific helper functions
 Imp.prototype.UpdateMovement = function() {
 
   // Check if we are within
-  var isOutside =
-    (this.x+this.width < 0 - game.constants.world.boundOffset) || // off to left
-    (this.y+this.height < 0 - game.constants.world.boundOffset) || // off to top
-    (this.x > game.width + game.constants.world.boundOffset) || // off to right
-    (this.y > game.height + game.constants.world.boundOffset); // off to left
+  if(this.CanMove) {
+    var isOutside =
+      (this.x+this.width < 0 - game.constants.world.boundOffset) || // off to left
+      (this.y+this.height < 0 - game.constants.world.boundOffset) || // off to top
+      (this.x > game.width + game.constants.world.boundOffset) || // off to right
+      (this.y > game.height + game.constants.world.boundOffset); // off to left
 
-  if(isOutside) {
-    this.Target = null;
-    var point1 = new Phaser.Point(this.x, this.y);
-    var point2 = new Phaser.Point(game.width / 2, game.height / 2);
-    var targetAngle = point1.angle(point2) + game.math.degToRad(90);
-    this.body.rotation = targetAngle;
-  }
-
-
-  if(this.Target !== null) {
-    this.accelerateToObject(this, this.Target, game.constants.imp.baseThrust);
-    this.turnToFace(this, this.Target);
-    var distanceFromTarget = this.getDistance(this, this.Target);
-    if(distanceFromTarget < game.constants.imp.targetOffset) {
+    if(isOutside) {
       this.Target = null;
+      var point1 = new Phaser.Point(this.x, this.y);
+      var point2 = new Phaser.Point(game.width / 2, game.height / 2);
+      var targetAngle = point1.angle(point2) + game.math.degToRad(90);
+      this.body.rotation = targetAngle;
     }
-  } else {
-      this.body.thrust(game.constants.imp.baseThrust);
+
+
+    if(this.Target !== null) {
+      game.AccelerateToObject(this, this.Target, game.constants.imp.baseThrust);
+      game.TurnToFace(this, this.Target, game.constants.imp.rotationSpeed);
+      var distanceFromTarget = game.GetDistance(this, this.Target);
+      if(distanceFromTarget < game.constants.imp.targetOffset) {
+        this.Target = null;
+      }
+    } else {
+        this.body.thrust(game.constants.imp.baseThrust);
+    }
+
+
+    // Limit max speed
+    this.ConstrainVelocity();
+
   }
-
-
-  // Limit max speed
-  this.constrainVelocity();
 };
 
-Imp.prototype.constrainVelocity = function() {
+Imp.prototype.ConstrainVelocity = function() {
   var body = this.body;
   var maxVelocity = game.constants.imp.maxVelocity;
   var angle, currVelocitySqr, vx, vy;
@@ -110,7 +122,7 @@ Imp.prototype.UpdateHealth = function() {
 
     game.time.events.add(game.constants.imp.deathDuration, function(){
       game.soundeffects.crash.play();
-      // addBlobs({x:this.x, y:this.y}, Math.floor((Math.random() * 12) + 8));
+      game.AddBlobs({x:this.x, y:this.y}, Math.floor((Math.random() * 12) + 8));
       this.destroy();
       this.isDying = false;
     }, this);
@@ -134,8 +146,7 @@ Imp.prototype.UpdateHealth = function() {
 
 };
 
-
-Imp.prototype.updateTTL = function() {
+Imp.prototype.UpdateTTL = function() {
   if(this.body !== null) {
     var healthLossPerSecond = game.constants.imp.startHealth / game.constants.imp.ttl;
     this.body.health -= healthLossPerSecond;
@@ -143,21 +154,13 @@ Imp.prototype.updateTTL = function() {
     // Keep the loop going every second until imp is dead
     if(this.body.health > 0) {
       game.time.events.add(1000, function(){
-        this.updateTTL();
+        this.UpdateTTL();
       }, this);
     }
   }
 };
 
-
-
-
-Imp.prototype.Target = null;
-Imp.prototype.isDying = false;
-Imp.prototype.deathSpinSpeed = 0;
-
-
-Imp.prototype.beginCollision = function(body, bodyB, shapeA, shapeB, equation) {
+Imp.prototype.BeginCollision = function(body, bodyB, shapeA, shapeB, equation) {
 
   if(body && body.health) {
     body.health -= game.constants.imp.bumpDamage;
@@ -168,11 +171,11 @@ Imp.prototype.beginCollision = function(body, bodyB, shapeA, shapeB, equation) {
   }
 
   // Bump Sound
-  this.playBump();
-  this.playOuch();
+  this.PlayBump();
+  this.PlayOuch();
 };
 
-Imp.prototype.playBump = function() {
+Imp.prototype.PlayBump = function() {
   var result = Math.floor((Math.random() * 4) + 1);
   if (result ===1){
     game.soundeffects.bump1.play();
@@ -185,7 +188,7 @@ Imp.prototype.playBump = function() {
   }
 };
 
-Imp.prototype.playOuch = function() {
+Imp.prototype.PlayOuch = function() {
   var result = Math.floor((Math.random() * 6) + 1);
   if (result ===1){
     game.soundeffects.impudent.play();
@@ -196,7 +199,7 @@ Imp.prototype.playOuch = function() {
   }
 };
 
-Imp.prototype.getSpawnLocation = function() {
+Imp.prototype.GetSpawnLocation = function() {
   var theReturn = {
     position : {
       x: 0,
@@ -224,36 +227,11 @@ Imp.prototype.getSpawnLocation = function() {
 
 };
 
-Imp.prototype.turnToFace = function(obj1, obj2) {
-
-  var point1 = new Phaser.Point(obj1.x, obj1.y);
-  var point2 = new Phaser.Point(obj2.x, obj2.y);
-  var targetAngle = point1.angle(point2) + game.math.degToRad(90);
-  var difference = targetAngle - obj1.body.rotation;
-
-  if (difference > game.math.PI) {
-    difference = ((2 * game.math) - difference);
-  }
-  if (difference < -game.math.PI) {
-    difference = ((2 * game.math) + difference);
-  }
-
-  // Move the character's rotation a set amount per unit time
-  var delta = (difference < 0) ? -game.constants.imp.rotationSpeed : game.constants.imp.rotationSpeed;
-  var rotateDiff = delta * game.timeSinceLastTick;
-  obj1.body.rotation += rotateDiff;
-
-};
-
-Imp.prototype.accelerateToObject = function(obj1, obj2, speed) {
-  if(typeof speed === 'undefined') { speed = game.constants.imp.baseThrust; }
-  var angle = Math.atan2(obj2.y - obj1.y, obj2.x - obj1.x);
-  obj1.body.force.x = Math.cos(angle) * speed;
-  obj1.body.force.y = Math.sin(angle) * speed;
-};
-
-Imp.prototype.getDistance = function(pointA, pointB){
-  return Math.sqrt( Math.pow((pointA.x-pointB.x), 2) + Math.pow((pointA.y-pointB.y), 2) );
+Imp.prototype.SetWin = function() {
+  this.animations.play('death', 10, true);
+  this.body.data.velocity[0] = 0;
+  this.body.data.velocity[1] = 0;
+  this.CanMove = false;
 };
 
 

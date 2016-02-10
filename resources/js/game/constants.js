@@ -20,6 +20,10 @@ module.exports = function() {
       spawn: {
         rate: 2500,   // Time in milliseconds between spawn attemtps
         chance: 60    // Percentage of chance a spawn succeeds
+      },
+      end: {
+        winCount: 15,
+        loseCount: 25
       }
 
     },
@@ -32,8 +36,8 @@ module.exports = function() {
       bumpDamage: 15,
       damping: 6,
 
-      maxVelocity: 5,
-      baseThrust: 50,
+      maxVelocity: 8,
+      baseThrust: 80,
       rotationSpeed: 0.0025,
 
       targetOffset: 30,               // Within this distance the target will be dropped

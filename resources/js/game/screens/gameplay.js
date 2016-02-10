@@ -6,7 +6,7 @@ module.exports = gamePlayScreen;
 var impObjectGroup;
 
 // Audio
-var clickSoundEffect;
+var gameplayBgMusic;
 
 // Tracking line for clicks
 var clickLine = new Phaser.Line(0, 0, 0, 0);
@@ -14,17 +14,34 @@ var clickCircle = new Phaser.Circle(0, 0, 0);
 var clickPoint = null;
 var clickNearestImp = null;
 
+// Image that needs faded
+var gamePlayScreenBG;
+var bgFlames;
+var filterFlame;
+var impressBG;
+
 
 gamePlayScreen.prototype = {
   preload: function() {},
 
   create: function(){
 
+    // Fire filter, for behind main image
+    filterFlame = game.add.filter('Fire', 800, 600);
+  	filterFlame.alpha = 0.0;
+
+
     // Set the stage
-    var gamePlayScreenBG = game.add.image(0, 0, "bg_gameplay_screen");
+    bgFlames = game.add.image(0, 0, "bg_gameplay_screen");
+    bgFlames.width = game.width;
+    bgFlames.height = game.height;
+    bgFlames.alpha = 0.1;
+    bgFlames.filters = [filterFlame];
+
+    gamePlayScreenBG = game.add.image(0, 0, "bg_gameplay_screen");
     gamePlayScreenBG.width = game.width;
     gamePlayScreenBG.height = game.height;
-    game.totalImpCount = 0;
+
 
     // Enable the physics
     game.physics.startSystem(Phaser.Physics.P2JS);
@@ -35,15 +52,24 @@ gamePlayScreen.prototype = {
 
     // Level setup
     setupClickLine();
-    this.setupAudio();
+    this.SetupAudio();
+    this.SetupDropoff();
 
 
     // Spawn time imps
-    this.spawnImps(game.constants.game.start.impCount, true);
+    this.SpawnImps(game.constants.game.start.impCount, true);
+
+
+    // Render text about scores
+    this.sacrificeText = game.add.text(5, game.height - 80, "Sacrifices: "+game.impWins, { font: "36px Arial", fill: "#333333", align: "left" });
+    this.deathText = game.add.text(5, game.height - 40, "Deaths: "+game.impDeaths, { font: "36px Arial", fill: "#333333", align: "left" });
 
   },
 
   update: function(){
+
+    // Check for imps being in pentagram
+    this.CheckForSacrifice();
 
     // Update click line and circle if present
     handleClickCircle();
@@ -52,23 +78,73 @@ gamePlayScreen.prototype = {
     }
 
     // Keep track of elapsed time/etc
-    this.updateTimer();
+    this.UpdateTimer();
+
+
+    // Update score display
+    this.sacrificeText.text = "Sacrifices: "+game.impWins;
+    this.deathText.text = "Deaths: "+game.impDeaths;
+
+
+    // Check for loss condition
+    if(game.impDeaths >= game.constants.game.end.loseCount) {
+      game.soundeffects.bgMusic.stop();
+      game.state.start("LoseScreen");
+    }
+
+    // Update Filters
+    filterFlame.update();
   },
 
   render: function() {
     game.debug.geom(clickLine, '#ff0000');
     game.debug.geom(clickCircle,'#cfffff', false);
+
+    this.RenderParticles();
   }
 };
 
-gamePlayScreen.prototype.setupAudio = function () {
+gamePlayScreen.prototype.RenderParticles = function() {
+  for (var iParticle=game.particleRenders.length-1; iParticle>0; iParticle--){
+    particle = game.particleRenders[iParticle];
+    game.debug.geom(particle,'#af111c', true);
+    particle.x += particle.vx;
+    particle.y += particle.vy;
+    if(particle.radius > 1) {
+      particle.radius -= 0.1;
+      particle.vx *= 0.985;
+      particle.vy *= 0.985;
+    } else {
+      game.particleRenders.splice(iParticle,1);
+    }
+  }
 
-  // BG Music
-  var gameplayBgMusic = game.add.audio('music_game_bg');
-  gameplayBgMusic.play();
-  gameplayBgMusic.loopFull(1);
+  for (var iStar=game.starRenders.length-1; iStar>0; iStar--){
+    star = game.starRenders[iStar];
+    game.debug.geom(star,'#FFD700', true);
+    star.x += star.vx;
+    star.y += star.vy;
+    if (!star.shrink){
+      star.radius += 0.35;
+      star.vx *= 0.985;
+      star.vy *= 0.985;
+      if (star.radius > 18){
+        star.shrink = true;
+      }
+    } else {
+      star.radius -= 0.3;
+      if (star.radius <1){
+        game.starRenders.splice(iStar,1);
+      }
+    }
+  }
+};
+
+gamePlayScreen.prototype.SetupAudio = function () {
 
   game.soundeffects = {
+    'bgMusic': game.add.audio('music_game_bg'),
+
     'click': game.add.audio('click_sfx'),
 
     'bump1': game.add.audio('bump1_sfx'),
@@ -76,16 +152,97 @@ gamePlayScreen.prototype.setupAudio = function () {
     'bump3': game.add.audio('bump3_sfx'),
     'bump4': game.add.audio('bump4_sfx'),
     'crash': game.add.audio('crash_sfx'),
+    'impWin': game.add.audio('imp_win_sfx'),
+    'impWin2': game.add.audio('imp_win_2_sfx'),
 
     'impudent': game.add.audio('impudent_vox'),
     'nuuuu': game.add.audio('nuuuu_vox'),
     'whoop': game.add.audio('whoop_vox'),
-    'impaled': game.add.audio('impaled_vox')
+    'impaled': game.add.audio('impaled_vox'),
+    'imadeit': game.add.audio('imadeit_vox'),
+    'yes': game.add.audio('yes_vox'),
+
+
   };
+
+
+  // Always playing bg music
+  game.soundeffects.bgMusic.play();
+  game.soundeffects.bgMusic.loopFull(1);
 
 };
 
-gamePlayScreen.prototype.updateTimer = function() {
+gamePlayScreen.prototype.SetupDropoff = function() {
+
+  pentagram = game.add.sprite(55, (game.height / 2) - 70, 'sprite_goal_one');
+
+  // Impress appears at the end
+  impressBG = game.add.sprite(180, 10, 'sprite_impress');
+  impressBG.visible = false;
+
+};
+
+gamePlayScreen.prototype.CheckForSacrifice = function() {
+
+  for(var i = 0; i < impObjectGroup.length; i++) {
+    var pentImp = impObjectGroup.children[i];
+    var pentInRight = pentImp.x < pentagram.x + pentagram.width;
+    var pentInLeft = pentImp.x + pentImp.width > pentagram.x;
+    var pentInBottom = pentImp.y < pentagram.y + pentagram.height;
+    var pentInTop = pentImp.height + pentImp.y > pentagram.y;
+
+    if(pentInRight && pentInLeft && pentInTop && pentInBottom){
+      this.TriggerSacrifice(pentImp);
+    }
+  }
+
+};
+
+gamePlayScreen.prototype.TriggerSacrifice = function(imp) {
+
+  // Particle Effect
+  game.AddStars({x:imp.x, y:imp.y}, Math.floor((Math.random() * 8) + 6));
+
+
+  // Audio effects
+  if(Math.floor((Math.random() * 2)) === true){
+    game.soundeffects.imadeit.play();
+  } else {
+    game.soundeffects.yes.play();
+  }
+
+  if(Math.floor((Math.random() * 2)) === true){
+    game.soundeffects.impWin.play();
+  } else {
+    game.soundeffects.impWin2.play();
+  }
+
+
+  // Slowly fade out the main image
+  gamePlayScreenBG.alpha -= 1/game.constants.game.end.winCount;
+
+  // Check for victory
+  game.impWins++;
+  if(game.impWins >= game.constants.game.end.winCount) {
+    // win condition triggered;
+    impressBG.visible = true;
+    game.soundeffects.bgMusic.stop();
+
+    // Stop imps moving and set graphic to "win" appropriate
+    for(var i = 0; i < impObjectGroup.length; i++) {
+      var currentImp = impObjectGroup.children[i];
+      currentImp.SetWin();
+    }
+
+    game.time.events.add(2000, function(){
+      game.state.start("WinScreen");
+    }, this);
+  }
+
+  imp.destroy();
+};
+
+gamePlayScreen.prototype.UpdateTimer = function() {
 
   if(game.startTime === undefined) { game.startTime = 0; }
   if(game.elapsedTime === undefined) { game.elapsedTime = 0; }
@@ -101,7 +258,12 @@ gamePlayScreen.prototype.updateTimer = function() {
   game.previousElapsedTime = game.elapsedTime;                                          // We are finished previous time at time point
 };
 
-gamePlayScreen.prototype.spawnImps = function(count, first) {
+gamePlayScreen.prototype.SpawnImps = function(count, first) {
+
+  // No point spawning if we are winners
+  if(game.impWins >= game.constants.game.end.winCount) {
+    return;
+  }
 
   if(first === undefined) { first = false; }
 
@@ -136,11 +298,10 @@ gamePlayScreen.prototype.spawnImps = function(count, first) {
 
   // Schedule the next spawn
   game.time.events.add(game.constants.game.spawn.rate, function(){
-    this.spawnImps(1);
+    this.SpawnImps(1);
   }, this);
 
 };
-
 
 
 

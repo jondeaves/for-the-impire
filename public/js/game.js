@@ -21,6 +21,10 @@ module.exports = function() {
       spawn: {
         rate: 2500,   // Time in milliseconds between spawn attemtps
         chance: 60    // Percentage of chance a spawn succeeds
+      },
+      end: {
+        winCount: 15,
+        loseCount: 25
       }
 
     },
@@ -33,8 +37,8 @@ module.exports = function() {
       bumpDamage: 15,
       damping: 6,
 
-      maxVelocity: 5,
-      baseThrust: 50,
+      maxVelocity: 8,
+      baseThrust: 80,
       rotationSpeed: 0.0025,
 
       targetOffset: 30,               // Within this distance the target will be dropped
@@ -104,7 +108,7 @@ module.exports = gamePlayScreen;
 var impObjectGroup;
 
 // Audio
-var clickSoundEffect;
+var gameplayBgMusic;
 
 // Tracking line for clicks
 var clickLine = new Phaser.Line(0, 0, 0, 0);
@@ -112,17 +116,34 @@ var clickCircle = new Phaser.Circle(0, 0, 0);
 var clickPoint = null;
 var clickNearestImp = null;
 
+// Image that needs faded
+var gamePlayScreenBG;
+var bgFlames;
+var filterFlame;
+var impressBG;
+
 
 gamePlayScreen.prototype = {
   preload: function() {},
 
   create: function(){
 
+    // Fire filter, for behind main image
+    filterFlame = game.add.filter('Fire', 800, 600);
+  	filterFlame.alpha = 0.0;
+
+
     // Set the stage
-    var gamePlayScreenBG = game.add.image(0, 0, "bg_gameplay_screen");
+    bgFlames = game.add.image(0, 0, "bg_gameplay_screen");
+    bgFlames.width = game.width;
+    bgFlames.height = game.height;
+    bgFlames.alpha = 0.1;
+    bgFlames.filters = [filterFlame];
+
+    gamePlayScreenBG = game.add.image(0, 0, "bg_gameplay_screen");
     gamePlayScreenBG.width = game.width;
     gamePlayScreenBG.height = game.height;
-    game.totalImpCount = 0;
+
 
     // Enable the physics
     game.physics.startSystem(Phaser.Physics.P2JS);
@@ -133,15 +154,24 @@ gamePlayScreen.prototype = {
 
     // Level setup
     setupClickLine();
-    this.setupAudio();
+    this.SetupAudio();
+    this.SetupDropoff();
 
 
     // Spawn time imps
-    this.spawnImps(game.constants.game.start.impCount, true);
+    this.SpawnImps(game.constants.game.start.impCount, true);
+
+
+    // Render text about scores
+    this.sacrificeText = game.add.text(5, game.height - 80, "Sacrifices: "+game.impWins, { font: "36px Arial", fill: "#333333", align: "left" });
+    this.deathText = game.add.text(5, game.height - 40, "Deaths: "+game.impDeaths, { font: "36px Arial", fill: "#333333", align: "left" });
 
   },
 
   update: function(){
+
+    // Check for imps being in pentagram
+    this.CheckForSacrifice();
 
     // Update click line and circle if present
     handleClickCircle();
@@ -150,23 +180,73 @@ gamePlayScreen.prototype = {
     }
 
     // Keep track of elapsed time/etc
-    this.updateTimer();
+    this.UpdateTimer();
+
+
+    // Update score display
+    this.sacrificeText.text = "Sacrifices: "+game.impWins;
+    this.deathText.text = "Deaths: "+game.impDeaths;
+
+
+    // Check for loss condition
+    if(game.impDeaths >= game.constants.game.end.loseCount) {
+      game.soundeffects.bgMusic.stop();
+      game.state.start("LoseScreen");
+    }
+
+    // Update Filters
+    filterFlame.update();
   },
 
   render: function() {
     game.debug.geom(clickLine, '#ff0000');
     game.debug.geom(clickCircle,'#cfffff', false);
+
+    this.RenderParticles();
   }
 };
 
-gamePlayScreen.prototype.setupAudio = function () {
+gamePlayScreen.prototype.RenderParticles = function() {
+  for (var iParticle=game.particleRenders.length-1; iParticle>0; iParticle--){
+    particle = game.particleRenders[iParticle];
+    game.debug.geom(particle,'#af111c', true);
+    particle.x += particle.vx;
+    particle.y += particle.vy;
+    if(particle.radius > 1) {
+      particle.radius -= 0.1;
+      particle.vx *= 0.985;
+      particle.vy *= 0.985;
+    } else {
+      game.particleRenders.splice(iParticle,1);
+    }
+  }
 
-  // BG Music
-  var gameplayBgMusic = game.add.audio('music_game_bg');
-  gameplayBgMusic.play();
-  gameplayBgMusic.loopFull(1);
+  for (var iStar=game.starRenders.length-1; iStar>0; iStar--){
+    star = game.starRenders[iStar];
+    game.debug.geom(star,'#FFD700', true);
+    star.x += star.vx;
+    star.y += star.vy;
+    if (!star.shrink){
+      star.radius += 0.35;
+      star.vx *= 0.985;
+      star.vy *= 0.985;
+      if (star.radius > 18){
+        star.shrink = true;
+      }
+    } else {
+      star.radius -= 0.3;
+      if (star.radius <1){
+        game.starRenders.splice(iStar,1);
+      }
+    }
+  }
+};
+
+gamePlayScreen.prototype.SetupAudio = function () {
 
   game.soundeffects = {
+    'bgMusic': game.add.audio('music_game_bg'),
+
     'click': game.add.audio('click_sfx'),
 
     'bump1': game.add.audio('bump1_sfx'),
@@ -174,16 +254,97 @@ gamePlayScreen.prototype.setupAudio = function () {
     'bump3': game.add.audio('bump3_sfx'),
     'bump4': game.add.audio('bump4_sfx'),
     'crash': game.add.audio('crash_sfx'),
+    'impWin': game.add.audio('imp_win_sfx'),
+    'impWin2': game.add.audio('imp_win_2_sfx'),
 
     'impudent': game.add.audio('impudent_vox'),
     'nuuuu': game.add.audio('nuuuu_vox'),
     'whoop': game.add.audio('whoop_vox'),
-    'impaled': game.add.audio('impaled_vox')
+    'impaled': game.add.audio('impaled_vox'),
+    'imadeit': game.add.audio('imadeit_vox'),
+    'yes': game.add.audio('yes_vox'),
+
+
   };
+
+
+  // Always playing bg music
+  game.soundeffects.bgMusic.play();
+  game.soundeffects.bgMusic.loopFull(1);
 
 };
 
-gamePlayScreen.prototype.updateTimer = function() {
+gamePlayScreen.prototype.SetupDropoff = function() {
+
+  pentagram = game.add.sprite(55, (game.height / 2) - 70, 'sprite_goal_one');
+
+  // Impress appears at the end
+  impressBG = game.add.sprite(180, 10, 'sprite_impress');
+  impressBG.visible = false;
+
+};
+
+gamePlayScreen.prototype.CheckForSacrifice = function() {
+
+  for(var i = 0; i < impObjectGroup.length; i++) {
+    var pentImp = impObjectGroup.children[i];
+    var pentInRight = pentImp.x < pentagram.x + pentagram.width;
+    var pentInLeft = pentImp.x + pentImp.width > pentagram.x;
+    var pentInBottom = pentImp.y < pentagram.y + pentagram.height;
+    var pentInTop = pentImp.height + pentImp.y > pentagram.y;
+
+    if(pentInRight && pentInLeft && pentInTop && pentInBottom){
+      this.TriggerSacrifice(pentImp);
+    }
+  }
+
+};
+
+gamePlayScreen.prototype.TriggerSacrifice = function(imp) {
+
+  // Particle Effect
+  game.AddStars({x:imp.x, y:imp.y}, Math.floor((Math.random() * 8) + 6));
+
+
+  // Audio effects
+  if(Math.floor((Math.random() * 2)) === true){
+    game.soundeffects.imadeit.play();
+  } else {
+    game.soundeffects.yes.play();
+  }
+
+  if(Math.floor((Math.random() * 2)) === true){
+    game.soundeffects.impWin.play();
+  } else {
+    game.soundeffects.impWin2.play();
+  }
+
+
+  // Slowly fade out the main image
+  gamePlayScreenBG.alpha -= 1/game.constants.game.end.winCount;
+
+  // Check for victory
+  game.impWins++;
+  if(game.impWins >= game.constants.game.end.winCount) {
+    // win condition triggered;
+    impressBG.visible = true;
+    game.soundeffects.bgMusic.stop();
+
+    // Stop imps moving and set graphic to "win" appropriate
+    for(var i = 0; i < impObjectGroup.length; i++) {
+      var currentImp = impObjectGroup.children[i];
+      currentImp.SetWin();
+    }
+
+    game.time.events.add(2000, function(){
+      game.state.start("WinScreen");
+    }, this);
+  }
+
+  imp.destroy();
+};
+
+gamePlayScreen.prototype.UpdateTimer = function() {
 
   if(game.startTime === undefined) { game.startTime = 0; }
   if(game.elapsedTime === undefined) { game.elapsedTime = 0; }
@@ -199,7 +360,12 @@ gamePlayScreen.prototype.updateTimer = function() {
   game.previousElapsedTime = game.elapsedTime;                                          // We are finished previous time at time point
 };
 
-gamePlayScreen.prototype.spawnImps = function(count, first) {
+gamePlayScreen.prototype.SpawnImps = function(count, first) {
+
+  // No point spawning if we are winners
+  if(game.impWins >= game.constants.game.end.winCount) {
+    return;
+  }
 
   if(first === undefined) { first = false; }
 
@@ -234,11 +400,10 @@ gamePlayScreen.prototype.spawnImps = function(count, first) {
 
   // Schedule the next spawn
   game.time.events.add(game.constants.game.spawn.rate, function(){
-    this.spawnImps(1);
+    this.SpawnImps(1);
   }, this);
 
 };
-
 
 
 
@@ -334,6 +499,7 @@ var loadingText;
 loadingScreen.prototype = {
   preload: function() {
     // Load anything needed before the actual asset loading is done.
+    game.load.script('filter', 'https://cdn.rawgit.com/photonstorm/phaser/master/filters/Fire.js');
   },
   create: function(){
 
@@ -469,7 +635,7 @@ var Imp = function(game, spriteSheet) {
   // Bit of prep work
   var impScale = 0.1;
   var frames = game.cache.getFrameData(spriteSheet).getFrames();
-  var impSpawn = this.getSpawnLocation();
+  var impSpawn = this.GetSpawnLocation();
 
   // Instansiate
   Phaser.Sprite.call(this, game, impSpawn.position.x, impSpawn.position.y, spriteSheet);
@@ -493,12 +659,12 @@ var Imp = function(game, spriteSheet) {
   this.body.collideWorldBounds = false;
   this.body.setCollisionGroup(game.worldCollideGroup);
   this.body.collides([game.worldCollideGroup]);
-  this.body.onBeginContact.add(this.beginCollision, this);
+  this.body.onBeginContact.add(this.BeginCollision, this);
 
   // Death
   this.deathSpinSpeed = game.constants.imp.deathSpinSpeed;
   game.time.events.add(1000, function(){
-    this.updateTTL();
+    this.UpdateTTL();
   }, this);
 
 };
@@ -510,41 +676,53 @@ Imp.prototype.update = function() {
   this.UpdateHealth();
 };
 
+
+// Properties
+Imp.prototype.Target = null;
+Imp.prototype.isDying = false;
+Imp.prototype.deathSpinSpeed = 0;
+Imp.prototype.CanMove = true;
+
+
+// Imp Specific helper functions
 Imp.prototype.UpdateMovement = function() {
 
   // Check if we are within
-  var isOutside =
-    (this.x+this.width < 0 - game.constants.world.boundOffset) || // off to left
-    (this.y+this.height < 0 - game.constants.world.boundOffset) || // off to top
-    (this.x > game.width + game.constants.world.boundOffset) || // off to right
-    (this.y > game.height + game.constants.world.boundOffset); // off to left
+  if(this.CanMove) {
+    var isOutside =
+      (this.x+this.width < 0 - game.constants.world.boundOffset) || // off to left
+      (this.y+this.height < 0 - game.constants.world.boundOffset) || // off to top
+      (this.x > game.width + game.constants.world.boundOffset) || // off to right
+      (this.y > game.height + game.constants.world.boundOffset); // off to left
 
-  if(isOutside) {
-    this.Target = null;
-    var point1 = new Phaser.Point(this.x, this.y);
-    var point2 = new Phaser.Point(game.width / 2, game.height / 2);
-    var targetAngle = point1.angle(point2) + game.math.degToRad(90);
-    this.body.rotation = targetAngle;
-  }
-
-
-  if(this.Target !== null) {
-    this.accelerateToObject(this, this.Target, game.constants.imp.baseThrust);
-    this.turnToFace(this, this.Target);
-    var distanceFromTarget = this.getDistance(this, this.Target);
-    if(distanceFromTarget < game.constants.imp.targetOffset) {
+    if(isOutside) {
       this.Target = null;
+      var point1 = new Phaser.Point(this.x, this.y);
+      var point2 = new Phaser.Point(game.width / 2, game.height / 2);
+      var targetAngle = point1.angle(point2) + game.math.degToRad(90);
+      this.body.rotation = targetAngle;
     }
-  } else {
-      this.body.thrust(game.constants.imp.baseThrust);
+
+
+    if(this.Target !== null) {
+      game.AccelerateToObject(this, this.Target, game.constants.imp.baseThrust);
+      game.TurnToFace(this, this.Target, game.constants.imp.rotationSpeed);
+      var distanceFromTarget = game.GetDistance(this, this.Target);
+      if(distanceFromTarget < game.constants.imp.targetOffset) {
+        this.Target = null;
+      }
+    } else {
+        this.body.thrust(game.constants.imp.baseThrust);
+    }
+
+
+    // Limit max speed
+    this.ConstrainVelocity();
+
   }
-
-
-  // Limit max speed
-  this.constrainVelocity();
 };
 
-Imp.prototype.constrainVelocity = function() {
+Imp.prototype.ConstrainVelocity = function() {
   var body = this.body;
   var maxVelocity = game.constants.imp.maxVelocity;
   var angle, currVelocitySqr, vx, vy;
@@ -576,7 +754,7 @@ Imp.prototype.UpdateHealth = function() {
 
     game.time.events.add(game.constants.imp.deathDuration, function(){
       game.soundeffects.crash.play();
-      // addBlobs({x:this.x, y:this.y}, Math.floor((Math.random() * 12) + 8));
+      game.AddBlobs({x:this.x, y:this.y}, Math.floor((Math.random() * 12) + 8));
       this.destroy();
       this.isDying = false;
     }, this);
@@ -600,8 +778,7 @@ Imp.prototype.UpdateHealth = function() {
 
 };
 
-
-Imp.prototype.updateTTL = function() {
+Imp.prototype.UpdateTTL = function() {
   if(this.body !== null) {
     var healthLossPerSecond = game.constants.imp.startHealth / game.constants.imp.ttl;
     this.body.health -= healthLossPerSecond;
@@ -609,21 +786,13 @@ Imp.prototype.updateTTL = function() {
     // Keep the loop going every second until imp is dead
     if(this.body.health > 0) {
       game.time.events.add(1000, function(){
-        this.updateTTL();
+        this.UpdateTTL();
       }, this);
     }
   }
 };
 
-
-
-
-Imp.prototype.Target = null;
-Imp.prototype.isDying = false;
-Imp.prototype.deathSpinSpeed = 0;
-
-
-Imp.prototype.beginCollision = function(body, bodyB, shapeA, shapeB, equation) {
+Imp.prototype.BeginCollision = function(body, bodyB, shapeA, shapeB, equation) {
 
   if(body && body.health) {
     body.health -= game.constants.imp.bumpDamage;
@@ -634,11 +803,11 @@ Imp.prototype.beginCollision = function(body, bodyB, shapeA, shapeB, equation) {
   }
 
   // Bump Sound
-  this.playBump();
-  this.playOuch();
+  this.PlayBump();
+  this.PlayOuch();
 };
 
-Imp.prototype.playBump = function() {
+Imp.prototype.PlayBump = function() {
   var result = Math.floor((Math.random() * 4) + 1);
   if (result ===1){
     game.soundeffects.bump1.play();
@@ -651,7 +820,7 @@ Imp.prototype.playBump = function() {
   }
 };
 
-Imp.prototype.playOuch = function() {
+Imp.prototype.PlayOuch = function() {
   var result = Math.floor((Math.random() * 6) + 1);
   if (result ===1){
     game.soundeffects.impudent.play();
@@ -662,7 +831,7 @@ Imp.prototype.playOuch = function() {
   }
 };
 
-Imp.prototype.getSpawnLocation = function() {
+Imp.prototype.GetSpawnLocation = function() {
   var theReturn = {
     position : {
       x: 0,
@@ -690,36 +859,11 @@ Imp.prototype.getSpawnLocation = function() {
 
 };
 
-Imp.prototype.turnToFace = function(obj1, obj2) {
-
-  var point1 = new Phaser.Point(obj1.x, obj1.y);
-  var point2 = new Phaser.Point(obj2.x, obj2.y);
-  var targetAngle = point1.angle(point2) + game.math.degToRad(90);
-  var difference = targetAngle - obj1.body.rotation;
-
-  if (difference > game.math.PI) {
-    difference = ((2 * game.math) - difference);
-  }
-  if (difference < -game.math.PI) {
-    difference = ((2 * game.math) + difference);
-  }
-
-  // Move the character's rotation a set amount per unit time
-  var delta = (difference < 0) ? -game.constants.imp.rotationSpeed : game.constants.imp.rotationSpeed;
-  var rotateDiff = delta * game.timeSinceLastTick;
-  obj1.body.rotation += rotateDiff;
-
-};
-
-Imp.prototype.accelerateToObject = function(obj1, obj2, speed) {
-  if(typeof speed === 'undefined') { speed = game.constants.imp.baseThrust; }
-  var angle = Math.atan2(obj2.y - obj1.y, obj2.x - obj1.x);
-  obj1.body.force.x = Math.cos(angle) * speed;
-  obj1.body.force.y = Math.sin(angle) * speed;
-};
-
-Imp.prototype.getDistance = function(pointA, pointB){
-  return Math.sqrt( Math.pow((pointA.x-pointB.x), 2) + Math.pow((pointA.y-pointB.y), 2) );
+Imp.prototype.SetWin = function() {
+  this.animations.play('death', 10, true);
+  this.body.data.velocity[0] = 0;
+  this.body.data.velocity[1] = 0;
+  this.CanMove = false;
 };
 
 
@@ -753,31 +897,71 @@ window.onload = function() {
 
 
   // Connect things
+  game.totalImpCount = 0;
   game.impDeaths = 0; // End goal tracking
   game.impWins = 0;   // End goal tracking
   game.constants = constants;
   game.Imp = require('./game/sprites/imp');
 
-  game.turnToFace = function(obj1, obj2) {
+  game.particleRenders = [];
+  game.starRenders = [];
+
+
+
+
+  // Game wide helper functions, should be moved to a helper
+  game.TurnToFace = function(obj1, obj2, rotationSpeed) {
 
     var point1 = new Phaser.Point(obj1.x, obj1.y);
     var point2 = new Phaser.Point(obj2.x, obj2.y);
     var targetAngle = point1.angle(point2) + game.math.degToRad(90);
     var difference = targetAngle - obj1.body.rotation;
 
-    if (difference > game.math.PI) {
+    if(difference > game.math.PI) {
       difference = ((2 * game.math) - difference);
-    }
-    if (difference < -game.math.PI) {
+    } else if(difference < -game.math.PI) {
       difference = ((2 * game.math) + difference);
     }
 
     // Move the character's rotation a set amount per unit time
-    var delta = (difference < 0) ? -game.constants.imp.rotationSpeed : game.constants.imp.rotationSpeed;
-    var rotateDiff = delta * timeSinceLastTick;
+    var delta = (difference < 0) ? -rotationSpeed : rotationSpeed;
+    var rotateDiff = delta * game.timeSinceLastTick;
     obj1.body.rotation += rotateDiff;
 
   };
+
+  game.AddBlobs = function(e, num){
+    var blob;
+    for (var i=0; i<num; i++){
+      blob = new Phaser.Circle(e.x + Math.floor((Math.random() * 40) - 20),e.y + Math.floor((Math.random() * 40) - 20), Math.floor((Math.random() * 20) + 10));
+      blob.vx = (blob.x-e.x) /10;//  (Math.random() * 4) - 2;
+      blob.vy = (blob.y-e.y) /10; // (Math.random() * 4) - 2;
+      this.particleRenders.push(blob);
+    }
+  };
+
+  game.AddStars = function(e, num){
+    var blob;
+    for (var i=0; i<num; i++){
+      blob = new Phaser.Circle(e.x + Math.floor((Math.random() * 40) - 20),e.y + Math.floor((Math.random() * 40) - 20), Math.floor((Math.random() * 20) + 10));
+      blob.vx = (blob.x-e.x) /6;//  (Math.random() * 4) - 2;
+      blob.vy = (blob.y-e.y) /6; // (Math.random() * 4) - 2;
+      this.starRenders.push(blob);
+    }
+  };
+
+  game.GetDistance = function(pointA, pointB){
+    return Math.sqrt( Math.pow((pointA.x-pointB.x), 2) + Math.pow((pointA.y-pointB.y), 2) );
+  };
+
+  game.AccelerateToObject = function(obj1, obj2, speed) {
+    var angle = Math.atan2(obj2.y - obj1.y, obj2.x - obj1.x);
+    obj1.body.force.x = Math.cos(angle) * speed;
+    obj1.body.force.y = Math.sin(angle) * speed;
+  };
+
+
+
 
   // Ready to go
   this.game = game;

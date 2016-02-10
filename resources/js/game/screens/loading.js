@@ -5,6 +5,7 @@ var loadingText;
 loadingScreen.prototype = {
   preload: function() {
     // Load anything needed before the actual asset loading is done.
+    game.load.script('filter', 'https://cdn.rawgit.com/photonstorm/phaser/master/filters/Fire.js');
   },
   create: function(){
 

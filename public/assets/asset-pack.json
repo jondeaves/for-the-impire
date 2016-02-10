@@ -70,6 +70,7 @@
 
 
   "gameplayScreen": [
+
     {
       "type": "image",
       "key": "bg_gameplay_screen",
@@ -77,12 +78,25 @@
       "overwrite": false
     },
     {
+      "type": "image",
+      "key": "sprite_goal_one",
+      "url": "/assets/gameplayScreen/sprites/sprite_goal_one.png",
+      "overwrite": false
+    },
+
+    {
+      "type": "image",
+      "key": "sprite_impress",
+      "url": "/assets/gameplayScreen/sprites/sprite_impress.png",
+      "overwrite": false
+    },
+
+    {
       "type": "audio",
       "key": "music_game_bg",
       "urls": ["/assets/gameplayScreen/music/music_game_bg.mp3"],
       "autoDecode": true
     },
-
 
 
     {
@@ -121,6 +135,18 @@
       "urls": ["/assets/gameplayScreen/sfx/crash.mp3"],
       "autoDecode": true
     },
+    {
+      "type": "audio",
+      "key": "imp_win_sfx",
+      "urls": ["/assets/gameplayScreen/sfx/impWin.mp3"],
+      "autoDecode": true
+    },
+    {
+      "type": "audio",
+      "key": "imp_win_2_sfx",
+      "urls": ["/assets/gameplayScreen/sfx/impWin2.mp3"],
+      "autoDecode": true
+    },
 
     {
       "type": "audio",
@@ -146,6 +172,18 @@
       "urls": ["/assets/gameplayScreen/vox/impaled.mp3"],
       "autoDecode": true
     },
+    {
+      "type": "audio",
+      "key": "imadeit_vox",
+      "urls": ["/assets/gameplayScreen/vox/i_made_it.mp3"],
+      "autoDecode": true
+    },
+    {
+      "type": "audio",
+      "key": "yes_vox",
+      "urls": ["/assets/gameplayScreen/vox/yes.mp3"],
+      "autoDecode": true
+    },
 
     {
       "type": "spritesheet",
@@ -169,7 +207,7 @@
 
   "meta": {
     "app": "For the IMPire",
-    "url": "http://ggj16.jondeaves.me",
-    "version": "0.0.1"
+    "url": "http://impire.jondeaves.me",
+    "version": "0.0.2"
   }
 }
