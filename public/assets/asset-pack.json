@@ -187,7 +187,7 @@
 
     {
       "type": "spritesheet",
-      "key": "spritesheet_imp_one",
+      "key": "spritesheet_imp_1",
       "url": "/assets/gameplayScreen/sprites/spritesheet_imp_one.png",
       "frameWidth": 676,
       "frameHeight": 764,
@@ -196,7 +196,7 @@
 
     {
       "type": "spritesheet",
-      "key": "spritesheet_imp_two",
+      "key": "spritesheet_imp_2",
       "url": "/assets/gameplayScreen/sprites/spritesheet_imp_two.png",
       "frameWidth": 616,
       "frameHeight": 669,

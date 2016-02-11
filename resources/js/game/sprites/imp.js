@@ -1,6 +1,8 @@
-var Imp = function(game, spriteSheet) {
+var Imp = function(game) {
 
   // Bit of prep work
+  var impSpriteNumber = game.rnd.integerInRange(1, 2);
+  var spriteSheet = 'spritesheet_imp_'+impSpriteNumber;
   var impScale = 0.1;
   var frames = game.cache.getFrameData(spriteSheet).getFrames();
   var impSpawn = this.GetSpawnLocation();

@@ -287,7 +287,7 @@ gamePlayScreen.prototype.SpawnImps = function(count, first) {
     }
 
     if(canSpawn) {
-      var imp = new game.Imp(game, 'spritesheet_imp_one');
+      var imp = new game.Imp(game);
       game.add.existing(imp);
       impObjectGroup.add(imp);
       game.totalImpCount++;
