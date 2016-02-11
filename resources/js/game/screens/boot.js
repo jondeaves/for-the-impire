@@ -10,8 +10,6 @@ Boot.prototype = {
 
     // Scale the game on smaller devices
     this.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-    this.game.scale.minWidth =  this.game.constants.world.minWidth;
-    this.game.scale.minHeight = this.game.constants.world.minHeight;
     this.game.scale.maxWidth = this.game.constants.world.width;
     this.game.scale.maxHeight = this.game.constants.world.height;
     this.game.scale.forceLandscape = true;

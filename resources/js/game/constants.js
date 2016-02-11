@@ -2,8 +2,6 @@ module.exports = function() {
   return {
 
     world: {
-      minWidth: 600,
-      minHeight: 360,
       width: 1280,
       height: 720,
       boundOffset: 50

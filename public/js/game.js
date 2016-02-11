@@ -3,8 +3,6 @@ module.exports = function() {
   return {
 
     world: {
-      minWidth: 600,
-      minHeight: 360,
       width: 1280,
       height: 720,
       boundOffset: 50
@@ -67,8 +65,6 @@ Boot.prototype = {
 
     // Scale the game on smaller devices
     this.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-    this.game.scale.minWidth =  this.game.constants.world.minWidth;
-    this.game.scale.minHeight = this.game.constants.world.minHeight;
     this.game.scale.maxWidth = this.game.constants.world.width;
     this.game.scale.maxHeight = this.game.constants.world.height;
     this.game.scale.forceLandscape = true;
