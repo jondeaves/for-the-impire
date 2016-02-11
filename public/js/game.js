@@ -294,8 +294,9 @@ gamePlayScreen.prototype.CheckForSacrifice = function() {
   for(var i = 0; i < impObjectGroup.length; i++) {
     var pentImp = impObjectGroup.children[i];
     var impRectangle = new Phaser.Rectangle(pentImp.x, pentImp.y, pentImp.width, pentImp.height);
+    var contains = Phaser.Rectangle.containsRect(impRectangle, pentagramRectangle);
     var intersects = Phaser.Rectangle.intersection(impRectangle, pentagramRectangle);
-    if(intersects.width > 30 && intersects.height > 30) {
+    if((intersects.width > 30 && intersects.height > 30) || contains) {
       this.TriggerSacrifice(pentImp);
     }
   }
