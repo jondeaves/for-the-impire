@@ -122,6 +122,10 @@ var bgFlames;
 var filterFlame;
 var impressBG;
 
+// End Goal
+var pentagram;
+var pentagramRectangle;
+
 
 gamePlayScreen.prototype = {
   preload: function() {},
@@ -201,6 +205,7 @@ gamePlayScreen.prototype = {
   render: function() {
     game.debug.geom(clickLine, '#ff0000');
     game.debug.geom(clickCircle,'#cfffff', false);
+    game.debug.geom(pentagramRectangle, 'rgba(200,0,0,0.5)');
 
     this.RenderParticles();
   }
@@ -276,7 +281,8 @@ gamePlayScreen.prototype.SetupAudio = function () {
 
 gamePlayScreen.prototype.SetupDropoff = function() {
 
-  pentagram = game.add.sprite(55, (game.height / 2) - 70, 'sprite_goal_one');
+  pentagram = game.add.sprite(120, (game.height / 2) - 70, 'sprite_goal_one');
+  pentagramRectangle = new Phaser.Rectangle(pentagram.x, pentagram.y, pentagram.width, pentagram.height);
 
   // Impress appears at the end
   impressBG = game.add.sprite(180, 10, 'sprite_impress');
@@ -285,19 +291,14 @@ gamePlayScreen.prototype.SetupDropoff = function() {
 };
 
 gamePlayScreen.prototype.CheckForSacrifice = function() {
-
   for(var i = 0; i < impObjectGroup.length; i++) {
     var pentImp = impObjectGroup.children[i];
-    var pentInRight = pentImp.x < pentagram.x + pentagram.width;
-    var pentInLeft = pentImp.x + pentImp.width > pentagram.x;
-    var pentInBottom = pentImp.y < pentagram.y + pentagram.height;
-    var pentInTop = pentImp.height + pentImp.y > pentagram.y;
-
-    if(pentInRight && pentInLeft && pentInTop && pentInBottom){
+    var impRectangle = new Phaser.Rectangle(pentImp.x, pentImp.y, pentImp.width, pentImp.height);
+    var contains = Phaser.Rectangle.containsRect(impRectangle, pentagramRectangle);
+    if(contains) {
       this.TriggerSacrifice(pentImp);
     }
   }
-
 };
 
 gamePlayScreen.prototype.TriggerSacrifice = function(imp) {
