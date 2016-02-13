@@ -12,7 +12,8 @@ var browserify = require('browserify'),
     rename = require('gulp-rename'),
     filter = require('gulp-filter'),
     sass = require('gulp-sass'),
-    plumber = require('gulp-plumber');
+    plumber = require('gulp-plumber'),
+    gulpgo = require("gulp-go");
 
 
 gulp.task('styles', function () {
@@ -65,7 +66,7 @@ gulp.task('styles', function () {
 
 });
 
-gulp.task('copy', function() {
+gulp.task('dependencies', function() {
   gulp.src('./node_modules/phaser/dist/phaser.min.js')
   .pipe(plumber())
   .pipe(gulp.dest('./public/js/'));
@@ -79,9 +80,16 @@ gulp.task('browserify', function() {
   .pipe(gulp.dest(destFolder));
 });
 
+gulp.task("goserver", function() {
+  go = gulpgo.run("server.go");
+});
+
 gulp.task('watch', function() {
 
   gulp.watch(['resources/sass/**/*.scss'], ['styles']);
+  gulp.watch(["server.go"]).on("change", function() {
+    go.restart();
+  });
 
   var bundler = browserify(sourceFile).plugin(watchify);
   bundler.on('update', rebundle);
@@ -96,4 +104,4 @@ gulp.task('watch', function() {
   return rebundle();
 });
 
-gulp.task('default', ['styles', 'copy', 'browserify', 'watch']);
+gulp.task('default', ['styles', 'dependencies', 'browserify', 'goserver', 'watch']);
