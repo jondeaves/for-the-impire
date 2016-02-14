@@ -283,8 +283,30 @@ gamePlayScreen.prototype.SetupAudio = function () {
 
 gamePlayScreen.prototype.SetupDropoff = function() {
 
+  // Pentgram is the target for Imps to reach
   pentagram = game.add.sprite(120, (game.height / 2) - 70, 'sprite_goal_one');
   pentagramRectangle = new Phaser.Rectangle(pentagram.x, pentagram.y, pentagram.width, pentagram.height);
+
+
+  // Cones will create a funnel for Imps to get into.
+  var coneLine1 = game.add.sprite(260, 260, 'sprite_cone_horizontal');
+  var coneLine2 = game.add.sprite(270, 460, 'sprite_cone_horizontal');
+  var coneLine3 = game.add.sprite(80, 350, 'sprite_cone_vertical');
+
+  // Cones are immovable
+  game.physics.p2.enable( [ coneLine1, coneLine2, coneLine3 ]);
+  coneLine1.body.static = true;
+  coneLine2.body.static = true;
+  coneLine3.body.static = true;
+
+  // Add cones to same collision group as Imps
+  coneLine1.body.setCollisionGroup(game.worldCollideGroup);
+  coneLine2.body.setCollisionGroup(game.worldCollideGroup);
+  coneLine3.body.setCollisionGroup(game.worldCollideGroup);
+  coneLine1.body.collides([game.worldCollideGroup]);
+  coneLine2.body.collides([game.worldCollideGroup]);
+  coneLine3.body.collides([game.worldCollideGroup]);
+
 
   // Impress appears at the end
   impressBG = game.add.sprite(180, 10, 'sprite_impress');

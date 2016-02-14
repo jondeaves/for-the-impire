@@ -92,6 +92,20 @@
     },
 
     {
+      "type": "image",
+      "key": "sprite_cone_horizontal",
+      "url": "/assets/gameplayScreen/sprites/sprite_cone_horizontal.png",
+      "overwrite": false
+    },
+
+    {
+      "type": "image",
+      "key": "sprite_cone_vertical",
+      "url": "/assets/gameplayScreen/sprites/sprite_cone_vertical.png",
+      "overwrite": false
+    },
+
+    {
       "type": "audio",
       "key": "music_game_bg",
       "urls": ["/assets/gameplayScreen/music/music_game_bg.mp3"],
