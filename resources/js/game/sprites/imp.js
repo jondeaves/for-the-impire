@@ -44,6 +44,14 @@ Imp.prototype.constructor = Imp;
 Imp.prototype.update = function() {
   this.UpdateMovement();
   this.UpdateHealth();
+  
+  // Update BoundingBox
+  this.BoundingBox = new Phaser.Rectangle(
+    this.x - (this.width / 2),
+    this.y - (this.height / 2),
+    this.width,
+    this.height
+  );
 };
 
 
@@ -52,6 +60,7 @@ Imp.prototype.Target = null;
 Imp.prototype.isDying = false;
 Imp.prototype.deathSpinSpeed = 0;
 Imp.prototype.CanMove = true;
+Imp.prototype.BoundingBox = new Phaser.Rectangle(0, 0, 0, 0);
 
 
 // Imp Specific helper functions

@@ -204,6 +204,12 @@ gamePlayScreen.prototype = {
     game.debug.geom(pentagramRectangle, 'rgba(200,0,0,0.5)');
 
     this.RenderParticles();
+
+
+    for(var i = 0; i < impObjectGroup.length; i++) {
+      var pentImp = impObjectGroup.children[i];
+      game.debug.geom(pentImp.BoundingBox, 'rgba(0,200,0,0.5)');
+    }
   }
 };
 
@@ -289,9 +295,8 @@ gamePlayScreen.prototype.SetupDropoff = function() {
 gamePlayScreen.prototype.CheckForSacrifice = function() {
   for(var i = 0; i < impObjectGroup.length; i++) {
     var pentImp = impObjectGroup.children[i];
-    var impRectangle = new Phaser.Rectangle(pentImp.x, pentImp.y, pentImp.width, pentImp.height);
-    var contains = Phaser.Rectangle.containsRect(impRectangle, pentagramRectangle);
-    var intersects = Phaser.Rectangle.intersection(impRectangle, pentagramRectangle);
+    var contains = Phaser.Rectangle.containsRect(pentImp.BoundingBox, pentagramRectangle);
+    var intersects = Phaser.Rectangle.intersection(pentImp.BoundingBox, pentagramRectangle);
     if((intersects.width > 30 && intersects.height > 30) || contains) {
       this.TriggerSacrifice(pentImp);
     }
@@ -674,6 +679,14 @@ Imp.prototype.constructor = Imp;
 Imp.prototype.update = function() {
   this.UpdateMovement();
   this.UpdateHealth();
+  
+  // Update BoundingBox
+  this.BoundingBox = new Phaser.Rectangle(
+    this.x - (this.width / 2),
+    this.y - (this.height / 2),
+    this.width,
+    this.height
+  );
 };
 
 
@@ -682,6 +695,7 @@ Imp.prototype.Target = null;
 Imp.prototype.isDying = false;
 Imp.prototype.deathSpinSpeed = 0;
 Imp.prototype.CanMove = true;
+Imp.prototype.BoundingBox = new Phaser.Rectangle(0, 0, 0, 0);
 
 
 // Imp Specific helper functions
