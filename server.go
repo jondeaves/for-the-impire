@@ -1,14 +1,14 @@
 package main
 
 import (
-  "log"
-  "net/http"
+	"log"
+	"net/http"
 )
 
 func main() {
-  fs := http.FileServer(http.Dir("public"))
-  http.Handle("/", fs)
+	fs := http.FileServer(http.Dir("public"))
+	http.Handle("/", fs)
 
-  log.Println("Listening on port 3000...")
-  http.ListenAndServe(":3000", nil)
+	log.Println("Listening on port 3000...")
+	http.ListenAndServe(":3000", nil)
 }
