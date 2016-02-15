@@ -3,4 +3,6 @@ Guide the imp servants towards the ritual altar to revive the grand IMPress! A c
 
 By tapping or clicking on the screen and dragging in order to aim. When you first click, or tap, a line will be drawn between the cursor and the nearest Imp which you can then guide towards the alter by releasing in the direction you wish it to travel.
 
+[Play in your Browser](http://impire.jondeaves.me/)
+
 ![For the IMPire](documentation/front.png)
