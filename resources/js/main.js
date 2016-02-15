@@ -26,13 +26,17 @@ window.onload = function() {
 
   // Connect things
   game.totalImpCount = 0;
+  game.totalSheepCount = 0;
+
   game.impDeaths = 0; // End goal tracking
   game.impWins = 0;   // End goal tracking
-  game.constants = constants;
-  game.Imp = require('./game/sprites/imp');
 
   game.particleRenders = [];
   game.starRenders = [];
+
+  game.constants = constants;
+  game.Imp = require('./game/sprites/imp');
+  game.Sheep = require('./game/sprites/sheep');
 
 
 
@@ -43,7 +47,13 @@ window.onload = function() {
     var point1 = new Phaser.Point(obj1.x, obj1.y);
     var point2 = new Phaser.Point(obj2.x, obj2.y);
     var targetAngle = point1.angle(point2) + game.math.degToRad(90);
-    var difference = targetAngle - obj1.body.rotation;
+    var rotateDiff = this.TurnToAngle(obj1.body.rotation, targetAngle, rotationSpeed);
+    obj1.body.rotation += rotateDiff;
+
+  };
+
+  game.TurnToAngle = function(currentAngle, targetAngle, rotationSpeed) {
+    var difference = targetAngle - currentAngle;
 
     if(difference > game.math.PI) {
       difference = ((2 * game.math) - difference);
@@ -53,9 +63,7 @@ window.onload = function() {
 
     // Move the character's rotation a set amount per unit time
     var delta = (difference < 0) ? -rotationSpeed : rotationSpeed;
-    var rotateDiff = delta * game.timeSinceLastTick;
-    obj1.body.rotation += rotateDiff;
-
+    return delta * game.time.elapsed;
   };
 
   game.AddBlobs = function(e, num){
@@ -86,6 +94,23 @@ window.onload = function() {
     var angle = Math.atan2(obj2.y - obj1.y, obj2.x - obj1.x);
     obj1.body.force.x = Math.cos(angle) * speed;
     obj1.body.force.y = Math.sin(angle) * speed;
+  };
+
+  game.GetFormattedTime = function(milliseconds) {
+
+    var min = (milliseconds/1000/60) << 0,
+        sec = (milliseconds/1000) % 60 << 0;
+
+    if(String(min).length === 1) {
+      min = "0" + min;
+    }
+
+    if(String(sec).length === 1) {
+      sec = "0" + sec;
+    }
+
+    return min + ":" + sec;
+
   };
 
 

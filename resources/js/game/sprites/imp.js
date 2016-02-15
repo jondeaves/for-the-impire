@@ -1,18 +1,18 @@
 var Imp = function(game) {
 
   // Bit of prep work
-  var impSpriteNumber = game.rnd.integerInRange(1, 2);
-  var spriteSheet = 'spritesheet_imp_'+impSpriteNumber;
-  var impScale = 0.1;
+  var spriteNumber = game.rnd.integerInRange(1, 2);
+  var spriteSheet = 'spritesheet_imp_'+spriteNumber;
+  var scale = 0.1;
   var frames = game.cache.getFrameData(spriteSheet).getFrames();
-  var impSpawn = this.GetSpawnLocation();
+  var spawnPoint = this.GetSpawnLocation();
 
   // Instansiate
-  Phaser.Sprite.call(this, game, impSpawn.position.x, impSpawn.position.y, spriteSheet);
+  Phaser.Sprite.call(this, game, spawnPoint.position.x, spawnPoint.position.y, spriteSheet);
   this.id = 'imp_'+game.totalImpCount;
 
   // Appearance
-  this.scale.setTo(impScale, impScale);
+  this.scale.setTo(scale, scale);
   this.animations.add('walk', [0, 1, 2]);
   this.animations.add('death', [3]);
   this.animations.play('walk', 10, true);
@@ -20,9 +20,9 @@ var Imp = function(game) {
   // Setup physics
   game.physics.p2.enable(this, false);
   this.anchor.y = 0.33;
-  this.body.setCircle((frames[0].width * impScale) / 3.3);
-  this.body.damping = (game.constants.imp.damping * impScale);
-  this.body.rotation = impSpawn.rotation;
+  this.body.setCircle((frames[0].width * scale) / 3.3);
+  this.body.damping = (game.constants.imp.damping * scale);
+  this.body.rotation = spawnPoint.rotation;
   this.body.health = game.constants.imp.startHealth;
 
   // Collisions with other objects
@@ -44,7 +44,7 @@ Imp.prototype.constructor = Imp;
 Imp.prototype.update = function() {
   this.UpdateMovement();
   this.UpdateHealth();
-  
+
   // Update BoundingBox
   this.BoundingBox = new Phaser.Rectangle(
     this.x - (this.width / 2),

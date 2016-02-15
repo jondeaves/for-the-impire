@@ -45,6 +45,32 @@ module.exports = function() {
       deathSpinSpeedIncrement: 0.075,   // Speed increase by this much each time
       deathSpinSpeed: 8,
       deathScaleSpeed: 0.001,
+    },
+
+    sheep: {
+      spawnRate: 8000,
+
+      damping: 6,
+      startHealth: 50,
+
+      actionStateTimeout: 5000,         // Number of milliseconds before changin AI state
+
+      idle: {
+        timeout: 800
+      },
+
+      rotation: {
+        angle: 45,
+        speed: 0.0025,
+        threshold: 0.003,
+        timeout: 1050
+      },
+
+      moving: {
+        thrust: 3000,
+        timeout: 1600,
+        threshold: 0.03
+      }
     }
 
   };

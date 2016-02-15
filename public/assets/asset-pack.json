@@ -215,7 +215,18 @@
       "frameWidth": 616,
       "frameHeight": 669,
       "frameMax": 5
+    },
+
+    {
+      "type": "spritesheet",
+      "key": "spritesheet_sheep_1",
+      "url": "/assets/gameplayScreen/sprites/spritesheet_sheep_one.png",
+      "frameWidth": 324,
+      "frameHeight": 473,
+      "frameMax": 2
     }
+
+
   ],
 
 

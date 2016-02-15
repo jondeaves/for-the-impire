@@ -46,6 +46,32 @@ module.exports = function() {
       deathSpinSpeedIncrement: 0.075,   // Speed increase by this much each time
       deathSpinSpeed: 8,
       deathScaleSpeed: 0.001,
+    },
+
+    sheep: {
+      spawnRate: 8000,
+
+      damping: 6,
+      startHealth: 50,
+
+      actionStateTimeout: 5000,         // Number of milliseconds before changin AI state
+
+      idle: {
+        timeout: 800
+      },
+
+      rotation: {
+        angle: 45,
+        speed: 0.0025,
+        threshold: 0.003,
+        timeout: 1050
+      },
+
+      moving: {
+        thrust: 3000,
+        timeout: 1600,
+        threshold: 0.03
+      }
     }
 
   };
@@ -102,6 +128,7 @@ module.exports = gamePlayScreen;
 
 // Track in-game objects
 var impObjectGroup;
+var sheepObjectGroup;
 
 // Audio
 var gameplayBgMusic;
@@ -158,11 +185,14 @@ gamePlayScreen.prototype = {
     this.SetupDropoff();
 
 
-    // Spawn time imps
+    // Spawn elements
+    this.SpawnSheep();
+    this.SpawnSpiders();
     this.SpawnImps(game.constants.game.start.impCount, true);
 
 
     // Render text about scores
+    this.timeText = game.add.text(5, game.height - 120, "Time: 00:00", { font: "36px Arial", fill: "#333333", align: "left" });
     this.sacrificeText = game.add.text(5, game.height - 80, "Sacrifices: "+game.impWins, { font: "36px Arial", fill: "#333333", align: "left" });
     this.deathText = game.add.text(5, game.height - 40, "Deaths: "+game.impDeaths, { font: "36px Arial", fill: "#333333", align: "left" });
 
@@ -184,6 +214,7 @@ gamePlayScreen.prototype = {
 
 
     // Update score display
+    this.timeText.text = "Time: " + game.GetFormattedTime(game.totalTimeActive);
     this.sacrificeText.text = "Sacrifices: "+game.impWins;
     this.deathText.text = "Deaths: "+game.impDeaths;
 
@@ -206,10 +237,16 @@ gamePlayScreen.prototype = {
     this.RenderParticles();
 
 
-    for(var i = 0; i < impObjectGroup.length; i++) {
-      var pentImp = impObjectGroup.children[i];
-      game.debug.geom(pentImp.BoundingBox, 'rgba(0,200,0,0.5)');
+    for(var iImp = 0; iImp < impObjectGroup.length; iImp++) {
+      var imp = impObjectGroup.children[iImp];
+      game.debug.geom(imp.BoundingBox, 'rgba(0,200,0,0.5)');
     }
+
+    for(var iSheep = 0; iSheep < sheepObjectGroup.length; iSheep++) {
+      var sheep = sheepObjectGroup.children[iSheep];
+      game.debug.geom(sheep.BoundingBox, 'rgba(0,0,200,0.5)');
+    }
+
   }
 };
 
@@ -370,19 +407,29 @@ gamePlayScreen.prototype.TriggerSacrifice = function(imp) {
 };
 
 gamePlayScreen.prototype.UpdateTimer = function() {
+  if(game.totalTimeActive === undefined) { game.totalTimeActive = 0; }
+  game.totalTimeActive += game.time.elapsed;
+};
 
-  if(game.startTime === undefined) { game.startTime = 0; }
-  if(game.elapsedTime === undefined) { game.elapsedTime = 0; }
-  if(game.previousElapsedTime === undefined) { game.previousElapsedTime = 0; }
-  if(game.timeSinceLastTick === undefined) { game.timeSinceLastTick = 0; }
+gamePlayScreen.prototype.SpawnSheep = function() {
 
-  // Time Tracking
-  game.elapsedTime = game.time.time - game.startTime;
-  if(game.previousElapsedTime === 0) {
-    game.previousElapsedTime = game.elapsedTime;
+  if(sheepObjectGroup === undefined) {
+    sheepObjectGroup = game.add.physicsGroup(Phaser.Physics.P2JS);
   }
-  game.timeSinceLastTick = game.elapsedTime - game.previousElapsedTime;
-  game.previousElapsedTime = game.elapsedTime;                                          // We are finished previous time at time point
+
+  var sheep = new game.Sheep(game);
+  game.add.existing(sheep);
+  sheepObjectGroup.add(sheep);
+  game.totalSheepCount++;
+
+  // Schedule the next spawn
+  game.time.events.add(game.constants.sheep.spawnRate, function(){
+    this.SpawnSheep();
+  }, this);
+};
+
+gamePlayScreen.prototype.SpawnSpiders = function() {
+
 };
 
 gamePlayScreen.prototype.SpawnImps = function(count, first) {
@@ -429,8 +476,6 @@ gamePlayScreen.prototype.SpawnImps = function(count, first) {
   }, this);
 
 };
-
-
 
 
 function handleClickCircle(){
@@ -658,18 +703,18 @@ winScreen.prototype = {
 var Imp = function(game) {
 
   // Bit of prep work
-  var impSpriteNumber = game.rnd.integerInRange(1, 2);
-  var spriteSheet = 'spritesheet_imp_'+impSpriteNumber;
-  var impScale = 0.1;
+  var spriteNumber = game.rnd.integerInRange(1, 2);
+  var spriteSheet = 'spritesheet_imp_'+spriteNumber;
+  var scale = 0.1;
   var frames = game.cache.getFrameData(spriteSheet).getFrames();
-  var impSpawn = this.GetSpawnLocation();
+  var spawnPoint = this.GetSpawnLocation();
 
   // Instansiate
-  Phaser.Sprite.call(this, game, impSpawn.position.x, impSpawn.position.y, spriteSheet);
+  Phaser.Sprite.call(this, game, spawnPoint.position.x, spawnPoint.position.y, spriteSheet);
   this.id = 'imp_'+game.totalImpCount;
 
   // Appearance
-  this.scale.setTo(impScale, impScale);
+  this.scale.setTo(scale, scale);
   this.animations.add('walk', [0, 1, 2]);
   this.animations.add('death', [3]);
   this.animations.play('walk', 10, true);
@@ -677,9 +722,9 @@ var Imp = function(game) {
   // Setup physics
   game.physics.p2.enable(this, false);
   this.anchor.y = 0.33;
-  this.body.setCircle((frames[0].width * impScale) / 3.3);
-  this.body.damping = (game.constants.imp.damping * impScale);
-  this.body.rotation = impSpawn.rotation;
+  this.body.setCircle((frames[0].width * scale) / 3.3);
+  this.body.damping = (game.constants.imp.damping * scale);
+  this.body.rotation = spawnPoint.rotation;
   this.body.health = game.constants.imp.startHealth;
 
   // Collisions with other objects
@@ -701,7 +746,7 @@ Imp.prototype.constructor = Imp;
 Imp.prototype.update = function() {
   this.UpdateMovement();
   this.UpdateHealth();
-  
+
   // Update BoundingBox
   this.BoundingBox = new Phaser.Rectangle(
     this.x - (this.width / 2),
@@ -906,6 +951,149 @@ Imp.prototype.SetWin = function() {
 module.exports = Imp;
 
 },{}],11:[function(require,module,exports){
+var Sheep = function(game) {
+
+  // Bit of prep work
+  var scale = 0.12;
+  var spriteSheet = 'spritesheet_sheep_1';
+  var frames = game.cache.getFrameData(spriteSheet).getFrames();
+  var sheepSpawn = this.GetSpawnLocation();
+
+  // Instansiate
+  Phaser.Sprite.call(this, game, sheepSpawn.position.x, sheepSpawn.position.y, spriteSheet);
+  this.id = 'sheep_'+game.totalSheepCount;
+
+  // Appearance
+  this.scale.setTo(scale, scale);
+  this.animations.add('walk', [0, 1]);
+
+  // Setup physics
+  game.physics.p2.enable(this, false);
+  this.anchor.y = 0.33;
+  this.body.setCircle((frames[0].width * scale) / 3.3);
+  this.body.damping = (game.constants.sheep.damping * scale);
+  this.body.rotation = sheepSpawn.rotation;
+  this.body.health = game.constants.sheep.startHealth;
+
+  // A.I. Phase
+  this.ActionState = this.ActionStateEnum.IDLE;
+  this.ChangeActionState();
+  this.PerformActionState();
+
+};
+
+Sheep.prototype = Object.create(Phaser.Sprite.prototype);
+Sheep.prototype.constructor = Sheep;
+Sheep.prototype.update = function() {
+
+  // Play animation if we are moving
+  if(this.body.data.velocity[0] > game.constants.sheep.moving.threshold || this.body.data.velocity[1] > game.constants.sheep.moving.threshold) {
+    this.animations.play('walk', 2, false);
+  }
+
+
+  // Turn if we need to
+  if(this.TurnToAngle !== null) {
+    var newRotation = game.TurnToAngle(this.body.rotation, this.TurnToAngle, game.constants.sheep.rotation.speed);
+    if(newRotation < game.constants.sheep.rotation.threshold && newRotation > -game.constants.sheep.rotation.threshold) {
+      this.TurnToAngle = null;
+    } else {
+      this.body.rotation += newRotation;
+    }
+  }
+
+
+  // Update BoundingBox
+  this.BoundingBox = new Phaser.Rectangle(
+    this.x - (this.width / 2),
+    this.y - (this.height / 2),
+    this.width,
+    this.height
+  );
+};
+
+
+// Properties
+Sheep.prototype.ActionStateEnum = { IDLE: 0, TURNING: 1, MOVING: 2 };           // Current active AI State
+Sheep.prototype.BoundingBox = new Phaser.Rectangle(0, 0, 0, 0);                 // Rectangle surrounding entire sprite
+Sheep.prototype.TurnToAngle = null;                                             // If not null will turn to face this during update
+
+
+// Pick a location on the map to spawn
+Sheep.prototype.GetSpawnLocation = function() {
+
+  // hard coded exclusion zone for now
+  var randomX = game.world.randomX;
+  var randomY = game.world.randomY;
+  if(randomY >= 200 && randomY <= 530 && randomX < 480) {
+    randomX = game.rnd.integerInRange(480, game.width);
+  }
+
+  var theReturn = {
+    position : {
+      x: randomX,
+      y: randomY
+    },
+    rotation: game.math.degToRad(game.rnd.integerInRange(0, 360))
+  };
+
+  return theReturn;
+
+};
+
+
+// Will pick a random state to be active for this timeout
+Sheep.prototype.ChangeActionState = function(){
+
+  // Randomize between 1 and the total number of ActionStateEnum
+  var newState = game.rnd.integerInRange(1, Object.keys(this.ActionStateEnum).length);
+  this.ActionState = this.ActionStateEnum[Object.keys(this.ActionStateEnum)[newState-1]];
+
+  // Requeue the change
+  game.time.events.add(game.constants.sheep.actionStateTimeout, function(){
+    this.ChangeActionState();
+  }, this);
+
+};
+
+Sheep.prototype.PerformActionState = function() {
+
+  // Reset all states
+  this.TurnToAngle = null;
+  this.animations.stop(null, true);
+
+
+  // Perform whichever state is active
+  var nextTimeout = 1000;
+  if(this.ActionState == this.ActionStateEnum.IDLE) {
+    nextTimeout = game.constants.sheep.idle.timeout;
+  } else if(this.ActionState == this.ActionStateEnum.TURNING) {
+    nextTimeout = game.constants.sheep.rotation.timeout;
+    if(game.rnd.integerInRange(0, 1) === 0) {
+      this.TurnToAngle = this.body.rotation + game.math.degToRad(45);
+    } else {
+      this.TurnToAngle = this.body.rotation - game.math.degToRad(45);
+    }
+  } else if(this.ActionState == this.ActionStateEnum.MOVING) {
+    nextTimeout = game.constants.sheep.moving.timeout;
+    this.body.thrust(3000);
+
+    // Reset to idle after a move
+    this.ActionState = this.ActionStateEnum.IDLE;
+  }
+
+
+  // Line up the next one
+  game.time.events.add(nextTimeout, function(){
+    this.PerformActionState();
+  }, this);
+};
+
+
+
+module.exports = Sheep;
+
+},{}],12:[function(require,module,exports){
 // Load our files
 var constantsModule = require('./game/constants');
 
@@ -934,13 +1122,17 @@ window.onload = function() {
 
   // Connect things
   game.totalImpCount = 0;
+  game.totalSheepCount = 0;
+
   game.impDeaths = 0; // End goal tracking
   game.impWins = 0;   // End goal tracking
-  game.constants = constants;
-  game.Imp = require('./game/sprites/imp');
 
   game.particleRenders = [];
   game.starRenders = [];
+
+  game.constants = constants;
+  game.Imp = require('./game/sprites/imp');
+  game.Sheep = require('./game/sprites/sheep');
 
 
 
@@ -951,7 +1143,13 @@ window.onload = function() {
     var point1 = new Phaser.Point(obj1.x, obj1.y);
     var point2 = new Phaser.Point(obj2.x, obj2.y);
     var targetAngle = point1.angle(point2) + game.math.degToRad(90);
-    var difference = targetAngle - obj1.body.rotation;
+    var rotateDiff = this.TurnToAngle(obj1.body.rotation, targetAngle, rotationSpeed);
+    obj1.body.rotation += rotateDiff;
+
+  };
+
+  game.TurnToAngle = function(currentAngle, targetAngle, rotationSpeed) {
+    var difference = targetAngle - currentAngle;
 
     if(difference > game.math.PI) {
       difference = ((2 * game.math) - difference);
@@ -961,9 +1159,7 @@ window.onload = function() {
 
     // Move the character's rotation a set amount per unit time
     var delta = (difference < 0) ? -rotationSpeed : rotationSpeed;
-    var rotateDiff = delta * game.timeSinceLastTick;
-    obj1.body.rotation += rotateDiff;
-
+    return delta * game.time.elapsed;
   };
 
   game.AddBlobs = function(e, num){
@@ -996,6 +1192,23 @@ window.onload = function() {
     obj1.body.force.y = Math.sin(angle) * speed;
   };
 
+  game.GetFormattedTime = function(milliseconds) {
+
+    var min = (milliseconds/1000/60) << 0,
+        sec = (milliseconds/1000) % 60 << 0;
+
+    if(String(min).length === 1) {
+      min = "0" + min;
+    }
+
+    if(String(sec).length === 1) {
+      sec = "0" + sec;
+    }
+
+    return min + ":" + sec;
+
+  };
+
 
 
 
@@ -1004,4 +1217,4 @@ window.onload = function() {
 
 };
 
-},{"./game/constants":1,"./game/screens/boot":2,"./game/screens/credit":3,"./game/screens/gameplay":4,"./game/screens/instruction":5,"./game/screens/loading":6,"./game/screens/lose":7,"./game/screens/menu":8,"./game/screens/win":9,"./game/sprites/imp":10}]},{},[11]);
+},{"./game/constants":1,"./game/screens/boot":2,"./game/screens/credit":3,"./game/screens/gameplay":4,"./game/screens/instruction":5,"./game/screens/loading":6,"./game/screens/lose":7,"./game/screens/menu":8,"./game/screens/win":9,"./game/sprites/imp":10,"./game/sprites/sheep":11}]},{},[12]);

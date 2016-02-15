@@ -4,6 +4,7 @@ module.exports = gamePlayScreen;
 
 // Track in-game objects
 var impObjectGroup;
+var sheepObjectGroup;
 
 // Audio
 var gameplayBgMusic;
@@ -60,11 +61,14 @@ gamePlayScreen.prototype = {
     this.SetupDropoff();
 
 
-    // Spawn time imps
+    // Spawn elements
+    this.SpawnSheep();
+    this.SpawnSpiders();
     this.SpawnImps(game.constants.game.start.impCount, true);
 
 
     // Render text about scores
+    this.timeText = game.add.text(5, game.height - 120, "Time: 00:00", { font: "36px Arial", fill: "#333333", align: "left" });
     this.sacrificeText = game.add.text(5, game.height - 80, "Sacrifices: "+game.impWins, { font: "36px Arial", fill: "#333333", align: "left" });
     this.deathText = game.add.text(5, game.height - 40, "Deaths: "+game.impDeaths, { font: "36px Arial", fill: "#333333", align: "left" });
 
@@ -86,6 +90,7 @@ gamePlayScreen.prototype = {
 
 
     // Update score display
+    this.timeText.text = "Time: " + game.GetFormattedTime(game.totalTimeActive);
     this.sacrificeText.text = "Sacrifices: "+game.impWins;
     this.deathText.text = "Deaths: "+game.impDeaths;
 
@@ -108,10 +113,16 @@ gamePlayScreen.prototype = {
     this.RenderParticles();
 
 
-    for(var i = 0; i < impObjectGroup.length; i++) {
-      var pentImp = impObjectGroup.children[i];
-      game.debug.geom(pentImp.BoundingBox, 'rgba(0,200,0,0.5)');
+    for(var iImp = 0; iImp < impObjectGroup.length; iImp++) {
+      var imp = impObjectGroup.children[iImp];
+      game.debug.geom(imp.BoundingBox, 'rgba(0,200,0,0.5)');
     }
+
+    for(var iSheep = 0; iSheep < sheepObjectGroup.length; iSheep++) {
+      var sheep = sheepObjectGroup.children[iSheep];
+      game.debug.geom(sheep.BoundingBox, 'rgba(0,0,200,0.5)');
+    }
+
   }
 };
 
@@ -272,19 +283,29 @@ gamePlayScreen.prototype.TriggerSacrifice = function(imp) {
 };
 
 gamePlayScreen.prototype.UpdateTimer = function() {
+  if(game.totalTimeActive === undefined) { game.totalTimeActive = 0; }
+  game.totalTimeActive += game.time.elapsed;
+};
 
-  if(game.startTime === undefined) { game.startTime = 0; }
-  if(game.elapsedTime === undefined) { game.elapsedTime = 0; }
-  if(game.previousElapsedTime === undefined) { game.previousElapsedTime = 0; }
-  if(game.timeSinceLastTick === undefined) { game.timeSinceLastTick = 0; }
+gamePlayScreen.prototype.SpawnSheep = function() {
 
-  // Time Tracking
-  game.elapsedTime = game.time.time - game.startTime;
-  if(game.previousElapsedTime === 0) {
-    game.previousElapsedTime = game.elapsedTime;
+  if(sheepObjectGroup === undefined) {
+    sheepObjectGroup = game.add.physicsGroup(Phaser.Physics.P2JS);
   }
-  game.timeSinceLastTick = game.elapsedTime - game.previousElapsedTime;
-  game.previousElapsedTime = game.elapsedTime;                                          // We are finished previous time at time point
+
+  var sheep = new game.Sheep(game);
+  game.add.existing(sheep);
+  sheepObjectGroup.add(sheep);
+  game.totalSheepCount++;
+
+  // Schedule the next spawn
+  game.time.events.add(game.constants.sheep.spawnRate, function(){
+    this.SpawnSheep();
+  }, this);
+};
+
+gamePlayScreen.prototype.SpawnSpiders = function() {
+
 };
 
 gamePlayScreen.prototype.SpawnImps = function(count, first) {
@@ -331,8 +352,6 @@ gamePlayScreen.prototype.SpawnImps = function(count, first) {
   }, this);
 
 };
-
-
 
 
 function handleClickCircle(){
