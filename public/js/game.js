@@ -45,6 +45,8 @@ module.exports = function() {
       deathSpinSpeedIncrement: 0.075,   // Speed increase by this much each time
       deathSpinSpeed: 8,
       deathScaleSpeed: 0.001,
+
+      scale: {low: 0.07, high: 0.1}
     },
 
     sheep: {
@@ -743,7 +745,7 @@ var Imp = function(game) {
   // Bit of prep work
   var spriteNumber = game.rnd.integerInRange(1, 2);
   var spriteSheet = 'spritesheet_imp_'+spriteNumber;
-  var scale = 0.1;
+  var scale = game.rnd.realInRange(game.constants.imp.scale.low, game.constants.imp.scale.high);
   var frames = game.cache.getFrameData(spriteSheet).getFrames();
   var spawnPoint = this.GetSpawnLocation();
 
@@ -752,6 +754,7 @@ var Imp = function(game) {
   this.id = 'imp_'+game.totalImpCount;
 
   // Appearance
+  this.CurrentScale = scale;
   this.scale.setTo(scale, scale);
   this.animations.add('walk', [0, 1, 2]);
   this.animations.add('death', [3]);
@@ -770,6 +773,7 @@ var Imp = function(game) {
   this.body.setCollisionGroup(game.worldCollideGroup);
   this.body.collides([game.worldCollideGroup]);
   this.body.onBeginContact.add(this.BeginCollision, this);
+  this.body.DamageDealt = (game.constants.imp.bumpDamage * (scale * 10));
 
   // Death
   this.deathSpinSpeed = game.constants.imp.deathSpinSpeed;
@@ -785,6 +789,7 @@ Imp.prototype.update = function() {
   this.UpdateMovement();
   this.UpdateHealth();
   this.CheckForSpiders();
+  this.UpdateDamageDealt();
 
   // Update BoundingBox
   this.BoundingBox = new Phaser.Rectangle(
@@ -797,6 +802,7 @@ Imp.prototype.update = function() {
 
 
 // Properties
+Imp.prototype.CurrentScale = 0;
 Imp.prototype.Target = null;
 Imp.prototype.isDying = false;
 Imp.prototype.deathSpinSpeed = 0;
@@ -878,6 +884,32 @@ Imp.prototype.UpdateHealth = function() {
 
 };
 
+Imp.prototype.UpdateTTL = function() {
+  if(this.body !== null) {
+    var healthLossPerSecond = game.constants.imp.startHealth / game.constants.imp.ttl;
+    this.body.health -= healthLossPerSecond;
+
+    // Keep the loop going every second until imp is dead
+    if(this.body.health > 0) {
+      game.time.events.add(1000, function(){
+        this.UpdateTTL();
+      }, this);
+    }
+  }
+};
+
+Imp.prototype.UpdateDamageDealt = function() {
+  var vx = this.body.data.velocity[0];
+  var vy = this.body.data.velocity[1];
+  var currVelocitySqr = vx * vx + vy * vy;
+  var maxVelocitySqr = game.constants.imp.maxVelocity * game.constants.imp.maxVelocity;
+  var damageDealtPercentage = (currVelocitySqr/maxVelocitySqr) * 2;
+  if(damageDealtPercentage > 1) {
+    damageDealtPercentage = 1;
+  }
+  this.body.DamageDealt = (game.constants.imp.bumpDamage * (this.CurrentScale * 10)) * damageDealtPercentage;
+};
+
 Imp.prototype.CheckForSpiders = function() {
 
   var nearestSpider = game.GetNearest(game.spiderObjectGroup, this.position);
@@ -903,7 +935,6 @@ Imp.prototype.CheckForSpiders = function() {
 
 };
 
-
 Imp.prototype.ConstrainVelocity = function() {
   var body = this.body;
   var maxVelocity = game.constants.imp.maxVelocity;
@@ -925,28 +956,14 @@ Imp.prototype.ConstrainVelocity = function() {
   }
 };
 
-Imp.prototype.UpdateTTL = function() {
-  if(this.body !== null) {
-    var healthLossPerSecond = game.constants.imp.startHealth / game.constants.imp.ttl;
-    this.body.health -= healthLossPerSecond;
-
-    // Keep the loop going every second until imp is dead
-    if(this.body.health > 0) {
-      game.time.events.add(1000, function(){
-        this.UpdateTTL();
-      }, this);
-    }
-  }
-};
-
 Imp.prototype.BeginCollision = function(body, bodyB, shapeA, shapeB, equation) {
 
   if(body && body.health) {
-    body.health -= game.constants.imp.bumpDamage;
+    body.health -= body.DamageDealt;
   } else if(bodyB && bodyB.health) {
-    bodyB.health -= game.constants.imp.bumpDamage;
+    bodyB.health -= body.DamageDealt;
   } else if(this.body && this.body.health) {
-    this.body.health -= game.constants.imp.bumpDamage;
+    this.body.health -= body.DamageDealt;
   }
 
   // Bump Sound
@@ -1331,7 +1348,6 @@ window.onload = function() {
 
   // Connect things
   game.IsDebug = checkForDebug();
-  console.log(game.IsDebug);
   game.totalImpCount = 0;
   game.totalSheepCount = 0;
   game.totalSpiderCount = 0;
@@ -1442,7 +1458,7 @@ window.onload = function() {
 
 
   game.TriggerFullscreen = function() {
-    if(!game.scale.isFullScreen) {
+    if(!game.scale.isFullScreen && !game.IsDebug) {
         game.scale.startFullScreen(false);
     }
   };

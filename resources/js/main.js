@@ -26,7 +26,6 @@ window.onload = function() {
 
   // Connect things
   game.IsDebug = checkForDebug();
-  console.log(game.IsDebug);
   game.totalImpCount = 0;
   game.totalSheepCount = 0;
   game.totalSpiderCount = 0;
@@ -137,7 +136,7 @@ window.onload = function() {
 
 
   game.TriggerFullscreen = function() {
-    if(!game.scale.isFullScreen) {
+    if(!game.scale.isFullScreen && !game.IsDebug) {
         game.scale.startFullScreen(false);
     }
   };

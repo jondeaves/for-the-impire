@@ -44,6 +44,8 @@ module.exports = function() {
       deathSpinSpeedIncrement: 0.075,   // Speed increase by this much each time
       deathSpinSpeed: 8,
       deathScaleSpeed: 0.001,
+
+      scale: {low: 0.07, high: 0.1}
     },
 
     sheep: {
