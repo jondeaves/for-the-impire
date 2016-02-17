@@ -104,21 +104,23 @@ gamePlayScreen.prototype = {
   render: function() {
 
     // These renders are for debug
-    game.debug.geom(pentagramRectangle, 'rgba(200,0,0,0.5)');
+    if(game.IsDebug) {
+      game.debug.geom(pentagramRectangle, 'rgba(200,0,0,0.5)');
 
-    for(var iImp = 0; iImp < game.ImpObjectGroup.length; iImp++) {
-      var imp = game.ImpObjectGroup.children[iImp];
-      game.debug.geom(imp.BoundingBox, 'rgba(0,200,0,0.5)');
-    }
+      for(var iImp = 0; iImp < game.ImpObjectGroup.length; iImp++) {
+        var imp = game.ImpObjectGroup.children[iImp];
+        game.debug.geom(imp.BoundingBox, 'rgba(0,200,0,0.5)');
+      }
 
-    for(var iSheep = 0; iSheep < game.SheepObjectGroup.length; iSheep++) {
-      var sheep = game.SheepObjectGroup.children[iSheep];
-      game.debug.geom(sheep.BoundingBox, 'rgba(0,0,200,0.5)');
-    }
+      for(var iSheep = 0; iSheep < game.SheepObjectGroup.length; iSheep++) {
+        var sheep = game.SheepObjectGroup.children[iSheep];
+        game.debug.geom(sheep.BoundingBox, 'rgba(0,0,200,0.5)');
+      }
 
-    for(var iSpider = 0; iSpider < game.spiderObjectGroup.length; iSpider++) {
-      var spider = game.spiderObjectGroup.children[iSpider];
-      game.debug.geom(spider.BoundingBox, 'rgba(200,0,0,0.5)');
+      for(var iSpider = 0; iSpider < game.spiderObjectGroup.length; iSpider++) {
+        var spider = game.spiderObjectGroup.children[iSpider];
+        game.debug.geom(spider.BoundingBox, 'rgba(200,0,0,0.5)');
+      }
     }
 
 
