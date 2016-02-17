@@ -136,6 +136,13 @@ window.onload = function() {
   };
 
 
+  game.TriggerFullscreen = function() {
+    if(!game.scale.isFullScreen) {
+        game.scale.startFullScreen(false);
+    }
+  };
+
+
   function checkForDebug() {
     return (getParameterByName('debug') === '1');
   }

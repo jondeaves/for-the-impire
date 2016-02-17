@@ -28,16 +28,19 @@ menuScreen.prototype = {
 
 
     startBtn = game.add.button(startBtnX, startBtnY, 'spritesheet_start_button', function() {
+      game.TriggerFullscreen();
       game.state.start("GamePlayScreen");
     }, this, 2, 1, 0);
     startBtn.scale.setTo(0.65, 0.65);
 
     instructionBtn = game.add.button(instructionBtnX, instructionBtnY, 'spritesheet_instruction_button', function() {
+      game.TriggerFullscreen();
       game.state.start("InstructionScreen");
     }, this, 2, 1, 0);
     instructionBtn.scale.setTo(0.65, 0.65);
 
     creditBtn = game.add.button(creditBtnX, creditBtnY, 'spritesheet_credit_button', function() {
+      game.TriggerFullscreen();
       game.state.start("CreditScreen");
     }, this, 2, 1, 0);
     creditBtn.scale.setTo(buttonScale, buttonScale);

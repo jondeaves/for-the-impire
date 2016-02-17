@@ -4,7 +4,7 @@ module.exports = function() {
 
     world: {
       width: 1280,
-      height: 720,
+      height: 800,
       boundOffset: 50
     },
 
@@ -360,9 +360,9 @@ gamePlayScreen.prototype.SetupDropoff = function() {
 
 
   // Cones will create a funnel for Imps to get into.
-  var coneLine1 = game.add.sprite(260, 260, 'sprite_cone_horizontal');
-  var coneLine2 = game.add.sprite(270, 460, 'sprite_cone_horizontal');
-  var coneLine3 = game.add.sprite(80, 350, 'sprite_cone_vertical');
+  var coneLine1 = game.add.sprite(260, 300, 'sprite_cone_horizontal');
+  var coneLine2 = game.add.sprite(270, 500, 'sprite_cone_horizontal');
+  var coneLine3 = game.add.sprite(80, 390, 'sprite_cone_vertical');
 
   // Cones are immovable
   game.physics.p2.enable( [ coneLine1, coneLine2, coneLine3 ]);
@@ -694,16 +694,19 @@ menuScreen.prototype = {
 
 
     startBtn = game.add.button(startBtnX, startBtnY, 'spritesheet_start_button', function() {
+      game.TriggerFullscreen();
       game.state.start("GamePlayScreen");
     }, this, 2, 1, 0);
     startBtn.scale.setTo(0.65, 0.65);
 
     instructionBtn = game.add.button(instructionBtnX, instructionBtnY, 'spritesheet_instruction_button', function() {
+      game.TriggerFullscreen();
       game.state.start("InstructionScreen");
     }, this, 2, 1, 0);
     instructionBtn.scale.setTo(0.65, 0.65);
 
     creditBtn = game.add.button(creditBtnX, creditBtnY, 'spritesheet_credit_button', function() {
+      game.TriggerFullscreen();
       game.state.start("CreditScreen");
     }, this, 2, 1, 0);
     creditBtn.scale.setTo(buttonScale, buttonScale);
@@ -1433,6 +1436,13 @@ window.onload = function() {
 
   game.GetDistance = function(pointA, pointB){
     return Math.sqrt( Math.pow((pointA.x-pointB.x), 2) + Math.pow((pointA.y-pointB.y), 2) );
+  };
+
+
+  game.TriggerFullscreen = function() {
+    if(!game.scale.isFullScreen) {
+        game.scale.startFullScreen(false);
+    }
   };
 
 
