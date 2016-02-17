@@ -1,14 +1,14 @@
-var Sheep = function(game) {
+var Spider = function(game) {
 
   // Bit of prep work
   var scale = 0.12;
-  var spriteSheet = 'spritesheet_sheep_1';
+  var spriteSheet = 'spritesheet_spider_1';
   var frames = game.cache.getFrameData(spriteSheet).getFrames();
   var spriteSpawn = this.GetSpawnLocation();
 
   // Instansiate
   Phaser.Sprite.call(this, game, spriteSpawn.position.x, spriteSpawn.position.y, spriteSheet);
-  this.id = 'sheep_'+game.totalSheepCount;
+  this.id = 'spider_'+game.totalSpiderCount;
 
   // Appearance
   this.scale.setTo(scale, scale);
@@ -18,9 +18,9 @@ var Sheep = function(game) {
   game.physics.p2.enable(this, false);
   this.anchor.y = 0.33;
   this.body.setCircle((frames[0].width * scale) / 3.3);
-  this.body.damping = (game.constants.sheep.damping * scale);
+  this.body.damping = (game.constants.spider.damping * scale);
   this.body.rotation = spriteSpawn.rotation;
-  this.body.health = game.constants.sheep.startHealth;
+  this.body.health = game.constants.spider.startHealth;
 
   // A.I. Phase
   this.ActionState = this.ActionStateEnum.IDLE;
@@ -29,20 +29,20 @@ var Sheep = function(game) {
 
 };
 
-Sheep.prototype = Object.create(Phaser.Sprite.prototype);
-Sheep.prototype.constructor = Sheep;
-Sheep.prototype.update = function() {
+Spider.prototype = Object.create(Phaser.Sprite.prototype);
+Spider.prototype.constructor = Spider;
+Spider.prototype.update = function() {
 
   // Play animation if we are moving
-  if(this.body.data.velocity[0] > game.constants.sheep.moving.threshold || this.body.data.velocity[1] > game.constants.sheep.moving.threshold) {
+  if(this.body.data.velocity[0] > game.constants.spider.moving.threshold || this.body.data.velocity[1] > game.constants.spider.moving.threshold) {
     this.animations.play('walk', 2, false);
   }
 
 
   // Turn if we need to
   if(this.TurnToAngle !== null) {
-    var newRotation = game.TurnToAngle(this.body.rotation, this.TurnToAngle, game.constants.sheep.rotation.speed);
-    if(newRotation < game.constants.sheep.rotation.threshold && newRotation > -game.constants.sheep.rotation.threshold) {
+    var newRotation = game.TurnToAngle(this.body.rotation, this.TurnToAngle, game.constants.spider.rotation.speed);
+    if(newRotation < game.constants.spider.rotation.threshold && newRotation > -game.constants.spider.rotation.threshold) {
       this.TurnToAngle = null;
     } else {
       this.body.rotation += newRotation;
@@ -61,13 +61,13 @@ Sheep.prototype.update = function() {
 
 
 // Properties
-Sheep.prototype.ActionStateEnum = { IDLE: 0, TURNING: 1, MOVING: 2 };           // Current active AI State
-Sheep.prototype.BoundingBox = new Phaser.Rectangle(0, 0, 0, 0);                 // Rectangle surrounding entire sprite
-Sheep.prototype.TurnToAngle = null;                                             // If not null will turn to face this during update
+Spider.prototype.ActionStateEnum = { IDLE: 0, TURNING: 1, MOVING: 2 };           // Current active AI State
+Spider.prototype.BoundingBox = new Phaser.Rectangle(0, 0, 0, 0);                 // Rectangle surrounding entire sprite
+Spider.prototype.TurnToAngle = null;                                             // If not null will turn to face this during update
 
 
 // Pick a location on the map to spawn
-Sheep.prototype.GetSpawnLocation = function() {
+Spider.prototype.GetSpawnLocation = function() {
 
   // hard coded exclusion zone for now
   var randomX = game.world.randomX;
@@ -90,20 +90,20 @@ Sheep.prototype.GetSpawnLocation = function() {
 
 
 // Will pick a random state to be active for this timeout
-Sheep.prototype.ChangeActionState = function(){
+Spider.prototype.ChangeActionState = function(){
 
   // Randomize between 1 and the total number of ActionStateEnum
   var newState = game.rnd.integerInRange(1, Object.keys(this.ActionStateEnum).length);
   this.ActionState = this.ActionStateEnum[Object.keys(this.ActionStateEnum)[newState-1]];
 
   // Requeue the change
-  game.time.events.add(game.constants.sheep.actionStateTimeout, function(){
+  game.time.events.add(game.constants.spider.actionStateTimeout, function(){
     this.ChangeActionState();
   }, this);
 
 };
 
-Sheep.prototype.PerformActionState = function() {
+Spider.prototype.PerformActionState = function() {
 
   // Reset all states
   this.TurnToAngle = null;
@@ -113,16 +113,16 @@ Sheep.prototype.PerformActionState = function() {
   // Perform whichever state is active
   var nextTimeout = 1000;
   if(this.ActionState == this.ActionStateEnum.IDLE) {
-    nextTimeout = game.constants.sheep.idle.timeout;
+    nextTimeout = game.constants.spider.idle.timeout;
   } else if(this.ActionState == this.ActionStateEnum.TURNING) {
-    nextTimeout = game.constants.sheep.rotation.timeout;
+    nextTimeout = game.constants.spider.rotation.timeout;
     if(game.rnd.integerInRange(0, 1) === 0) {
       this.TurnToAngle = this.body.rotation + game.math.degToRad(45);
     } else {
       this.TurnToAngle = this.body.rotation - game.math.degToRad(45);
     }
   } else if(this.ActionState == this.ActionStateEnum.MOVING) {
-    nextTimeout = game.constants.sheep.moving.timeout;
+    nextTimeout = game.constants.spider.moving.timeout;
     this.body.thrust(3000);
 
     // Reset to idle after a move
@@ -138,4 +138,4 @@ Sheep.prototype.PerformActionState = function() {
 
 
 
-module.exports = Sheep;
+module.exports = Spider;

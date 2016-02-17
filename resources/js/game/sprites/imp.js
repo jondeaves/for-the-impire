@@ -44,6 +44,7 @@ Imp.prototype.constructor = Imp;
 Imp.prototype.update = function() {
   this.UpdateMovement();
   this.UpdateHealth();
+  this.CheckForSpiders();
 
   // Update BoundingBox
   this.BoundingBox = new Phaser.Rectangle(
@@ -61,6 +62,7 @@ Imp.prototype.isDying = false;
 Imp.prototype.deathSpinSpeed = 0;
 Imp.prototype.CanMove = true;
 Imp.prototype.BoundingBox = new Phaser.Rectangle(0, 0, 0, 0);
+Imp.prototype.FleeingFrom = null;     // Spider we are currently fleeing from
 
 
 // Imp Specific helper functions
@@ -101,27 +103,6 @@ Imp.prototype.UpdateMovement = function() {
   }
 };
 
-Imp.prototype.ConstrainVelocity = function() {
-  var body = this.body;
-  var maxVelocity = game.constants.imp.maxVelocity;
-  var angle, currVelocitySqr, vx, vy;
-
-  vx = body.data.velocity[0];
-  vy = body.data.velocity[1];
-
-  currVelocitySqr = vx * vx + vy * vy;
-
-  if(currVelocitySqr > maxVelocity * maxVelocity) {
-    angle = Math.atan2(vy, vx);
-
-    vx = Math.cos(angle) * maxVelocity;
-    vy = Math.sin(angle) * maxVelocity;
-
-    body.data.velocity[0] = vx;
-    body.data.velocity[1] = vy;
-  }
-};
-
 Imp.prototype.UpdateHealth = function() {
 
   // Are we ready to die?
@@ -155,6 +136,53 @@ Imp.prototype.UpdateHealth = function() {
     this.deathSpinSpeed += game.constants.imp.deathSpinSpeedIncrement;
   }
 
+};
+
+Imp.prototype.CheckForSpiders = function() {
+
+  var nearestSpider = game.GetNearest(game.spiderObjectGroup, this.position);
+  if(nearestSpider !== null && this.FleeingFrom !== nearestSpider) {
+    var nearestSpiderDistance = game.GetDistance(this.position, nearestSpider.position);
+    if(nearestSpiderDistance <= game.constants.spider.fleeDistance) {
+      this.FleeingFrom = nearestSpider;
+      this.Target = null;
+
+      var newAngle = game.rnd.integerInRange(90, 270);
+      this.body.rotation = this.body.rotation + game.math.degToRad(newAngle);
+      this.body.thrust(game.constants.imp.baseThrust * 5);
+    }
+  }
+
+
+  if(this.FleeingFrom !== null) {
+    var fleeFromDistance = game.GetDistance(this.position, nearestSpider.position);
+    if(fleeFromDistance > game.constants.spider.fleeDistance) {
+      this.FleeingFrom = null;
+    }
+  }
+
+};
+
+
+Imp.prototype.ConstrainVelocity = function() {
+  var body = this.body;
+  var maxVelocity = game.constants.imp.maxVelocity;
+  var angle, currVelocitySqr, vx, vy;
+
+  vx = body.data.velocity[0];
+  vy = body.data.velocity[1];
+
+  currVelocitySqr = vx * vx + vy * vy;
+
+  if(currVelocitySqr > maxVelocity * maxVelocity) {
+    angle = Math.atan2(vy, vx);
+
+    vx = Math.cos(angle) * maxVelocity;
+    vy = Math.sin(angle) * maxVelocity;
+
+    body.data.velocity[0] = vx;
+    body.data.velocity[1] = vy;
+  }
 };
 
 Imp.prototype.UpdateTTL = function() {

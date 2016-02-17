@@ -27,6 +27,7 @@ window.onload = function() {
   // Connect things
   game.totalImpCount = 0;
   game.totalSheepCount = 0;
+  game.totalSpiderCount = 0;
 
   game.impDeaths = 0; // End goal tracking
   game.impWins = 0;   // End goal tracking
@@ -37,6 +38,7 @@ window.onload = function() {
   game.constants = constants;
   game.Imp = require('./game/sprites/imp');
   game.Sheep = require('./game/sprites/sheep');
+  game.Spider = require('./game/sprites/spider');
 
 
 
@@ -111,6 +113,24 @@ window.onload = function() {
 
     return min + ":" + sec;
 
+  };
+
+  game.GetNearest = function(arrIn, pointIn) {
+    var nearest = null;
+    var currentNearestDistance = 10000000000000;
+    var dist;
+    arrIn.forEach(function(obj){
+      dist = game.GetDistance(pointIn, obj.position);
+      if(dist < currentNearestDistance) {
+        currentNearestDistance = dist;
+        nearest = obj;
+      }
+    });
+    return nearest || null;
+  };
+
+  game.GetDistance = function(pointA, pointB){
+    return Math.sqrt( Math.pow((pointA.x-pointB.x), 2) + Math.pow((pointA.y-pointB.y), 2) );
   };
 
 

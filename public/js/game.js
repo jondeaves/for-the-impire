@@ -30,7 +30,6 @@ module.exports = function() {
     imp: {
       ttl: 30,                        // Number of seconds to live
       startHealth: 110,
-      spawnRate: '',
 
       bumpDamage: 15,
       damping: 6,
@@ -50,6 +49,7 @@ module.exports = function() {
 
     sheep: {
       spawnRate: 8000,
+      spawnChance: 40,
 
       damping: 6,
       startHealth: 50,
@@ -70,6 +70,35 @@ module.exports = function() {
       moving: {
         thrust: 3000,
         timeout: 1600,
+        threshold: 0.03
+      }
+    },
+
+    spider: {
+      spawnRate: 12000,
+      spawnChance: 40,
+
+      damping: 6,
+      startHealth: 100,
+
+      actionStateTimeout: 3000,         // Number of milliseconds before changin AI state
+
+      fleeDistance: 120,                 // Distance from a spider before turning the other way
+
+      idle: {
+        timeout: 800
+      },
+
+      rotation: {
+        angle: 45,
+        speed: 0.0025,
+        threshold: 0.003,
+        timeout: 1000
+      },
+
+      moving: {
+        thrust: 3000,
+        timeout: 1500,
         threshold: 0.03
       }
     }
@@ -124,11 +153,6 @@ creditScreen.prototype = {
 },{}],4:[function(require,module,exports){
 var gamePlayScreen = function(){};
 module.exports = gamePlayScreen;
-
-
-// Track in-game objects
-var impObjectGroup;
-var sheepObjectGroup;
 
 // Audio
 var gameplayBgMusic;
@@ -187,7 +211,7 @@ gamePlayScreen.prototype = {
 
     // Spawn elements
     this.SpawnSheep();
-    this.SpawnSpiders();
+    this.SpawnSpider();
     this.SpawnImps(game.constants.game.start.impCount, true);
 
 
@@ -208,6 +232,7 @@ gamePlayScreen.prototype = {
     if(clickLine.x !== 0 && clickNearestImp !== undefined && clickNearestImp !== null){
       updateClickLine(clickNearestImp.x, clickNearestImp.y, game.input.x, game.input.y );
     }
+
 
     // Keep track of elapsed time/etc
     this.UpdateTimer();
@@ -230,23 +255,30 @@ gamePlayScreen.prototype = {
   },
 
   render: function() {
-    game.debug.geom(clickLine, '#ff0000');
-    game.debug.geom(clickCircle,'#cfffff', false);
+
+    // These renders are for debug
     game.debug.geom(pentagramRectangle, 'rgba(200,0,0,0.5)');
 
-    this.RenderParticles();
-
-
-    for(var iImp = 0; iImp < impObjectGroup.length; iImp++) {
-      var imp = impObjectGroup.children[iImp];
+    for(var iImp = 0; iImp < game.ImpObjectGroup.length; iImp++) {
+      var imp = game.ImpObjectGroup.children[iImp];
       game.debug.geom(imp.BoundingBox, 'rgba(0,200,0,0.5)');
     }
 
-    for(var iSheep = 0; iSheep < sheepObjectGroup.length; iSheep++) {
-      var sheep = sheepObjectGroup.children[iSheep];
+    for(var iSheep = 0; iSheep < game.SheepObjectGroup.length; iSheep++) {
+      var sheep = game.SheepObjectGroup.children[iSheep];
       game.debug.geom(sheep.BoundingBox, 'rgba(0,0,200,0.5)');
     }
 
+    for(var iSpider = 0; iSpider < game.spiderObjectGroup.length; iSpider++) {
+      var spider = game.spiderObjectGroup.children[iSpider];
+      game.debug.geom(spider.BoundingBox, 'rgba(200,0,0,0.5)');
+    }
+
+
+    // These renders are for game
+    game.debug.geom(clickLine, '#ff0000');
+    game.debug.geom(clickCircle,'#cfffff', false);
+    this.RenderParticles();
   }
 };
 
@@ -352,8 +384,8 @@ gamePlayScreen.prototype.SetupDropoff = function() {
 };
 
 gamePlayScreen.prototype.CheckForSacrifice = function() {
-  for(var i = 0; i < impObjectGroup.length; i++) {
-    var pentImp = impObjectGroup.children[i];
+  for(var i = 0; i < game.ImpObjectGroup.length; i++) {
+    var pentImp = game.ImpObjectGroup.children[i];
     var contains = Phaser.Rectangle.containsRect(pentImp.BoundingBox, pentagramRectangle);
     var intersects = Phaser.Rectangle.intersection(pentImp.BoundingBox, pentagramRectangle);
     if((intersects.width > 30 && intersects.height > 30) || contains) {
@@ -393,8 +425,8 @@ gamePlayScreen.prototype.TriggerSacrifice = function(imp) {
     game.soundeffects.bgMusic.stop();
 
     // Stop imps moving and set graphic to "win" appropriate
-    for(var i = 0; i < impObjectGroup.length; i++) {
-      var currentImp = impObjectGroup.children[i];
+    for(var i = 0; i < game.ImpObjectGroup.length; i++) {
+      var currentImp = game.ImpObjectGroup.children[i];
       currentImp.SetWin();
     }
 
@@ -413,22 +445,45 @@ gamePlayScreen.prototype.UpdateTimer = function() {
 
 gamePlayScreen.prototype.SpawnSheep = function() {
 
-  if(sheepObjectGroup === undefined) {
-    sheepObjectGroup = game.add.physicsGroup(Phaser.Physics.P2JS);
+  if(game.SheepObjectGroup === undefined) {
+    game.SheepObjectGroup = game.add.physicsGroup(Phaser.Physics.P2JS);
   }
 
-  var sheep = new game.Sheep(game);
-  game.add.existing(sheep);
-  sheepObjectGroup.add(sheep);
-  game.totalSheepCount++;
+  // A chance to spawn, not guaranteed
+  var spawnRndChecker = game.rnd.integerInRange(0, 100);
+  if(spawnRndChecker <= game.constants.sheep.spawnChance) {
+    var sheep = new game.Sheep(game);
+    game.add.existing(sheep);
+    game.SheepObjectGroup.add(sheep);
+    game.totalSheepCount++;
+  }
 
   // Schedule the next spawn
   game.time.events.add(game.constants.sheep.spawnRate, function(){
     this.SpawnSheep();
   }, this);
+
 };
 
-gamePlayScreen.prototype.SpawnSpiders = function() {
+gamePlayScreen.prototype.SpawnSpider = function() {
+
+  if(game.spiderObjectGroup === undefined) {
+    game.spiderObjectGroup = game.add.physicsGroup(Phaser.Physics.P2JS);
+  }
+
+  // A chance to spawn, not guaranteed
+  var spawnRndChecker = game.rnd.integerInRange(0, 100);
+  if(spawnRndChecker <= game.constants.spider.spawnChance) {
+    var spider = new game.Spider(game);
+    game.add.existing(spider);
+    game.spiderObjectGroup.add(spider);
+    game.totalSpiderCount++;
+  }
+
+  // Schedule the next spawn
+  game.time.events.add(game.constants.spider.spawnRate, function(){
+    this.SpawnSpider();
+  }, this);
 
 };
 
@@ -442,8 +497,8 @@ gamePlayScreen.prototype.SpawnImps = function(count, first) {
   if(first === undefined) { first = false; }
 
   // Initialize the imp physics group if not already
-  if(impObjectGroup === undefined) {
-    impObjectGroup = game.add.physicsGroup(Phaser.Physics.P2JS);
+  if(game.ImpObjectGroup === undefined) {
+    game.ImpObjectGroup = game.add.physicsGroup(Phaser.Physics.P2JS);
   }
 
   // Create new Imps up to the count provided.
@@ -463,7 +518,7 @@ gamePlayScreen.prototype.SpawnImps = function(count, first) {
     if(canSpawn) {
       var imp = new game.Imp(game);
       game.add.existing(imp);
-      impObjectGroup.add(imp);
+      game.ImpObjectGroup.add(imp);
       game.totalImpCount++;
     }
 
@@ -496,7 +551,7 @@ function updateClickLine(x1, y1, x2, y2) {
 function setupClickLine() {
 
   var clickDown = function(e) {
-    clickNearestImp = getNearest(impObjectGroup, game.input);
+    clickNearestImp = game.GetNearest(game.ImpObjectGroup, game.input);
     clickPoint = {x:game.input.x, y:game.input.y};
     if(clickNearestImp !== undefined && clickNearestImp !== null) {
       updateClickLine(clickNearestImp.x, clickNearestImp.y, clickPoint.x, clickPoint.y );
@@ -507,6 +562,7 @@ function setupClickLine() {
     updateClickLine(0, 0, 0, 0);
     if(clickNearestImp !== undefined && clickNearestImp !== null) {
       clickNearestImp.Target = {x: e.x, y: e.y};
+      clickNearestImp.FleeingFrom = null;       // NO FEAR!!!!
     }
     clickCircle.setTo(game.input.x, game.input.y, 2);
     game.soundeffects.click.play();
@@ -514,31 +570,6 @@ function setupClickLine() {
 
   game.input.onDown.add(function(e) { clickDown(e); }, this);
   game.input.onUp.add(function(e) { release(e); }, this);
-}
-
-
-
-
-
-
-
-
-function getNearest(arrIn, pointIn) {
-  var nearest = null;
-  var currentNearestDistance = 10000000000000;
-  var dist;
-  arrIn.forEach(function(obj){
-    dist = getDistance(pointIn, obj.position);
-    if(dist < currentNearestDistance) {
-      currentNearestDistance = dist;
-      nearest = obj;
-    }
-  });
-  return nearest || null;
-}
-
-function getDistance(pointA, pointB){
-  return Math.sqrt( Math.pow((pointA.x-pointB.x), 2) + Math.pow((pointA.y-pointB.y), 2) );
 }
 
 },{}],5:[function(require,module,exports){
@@ -746,6 +777,7 @@ Imp.prototype.constructor = Imp;
 Imp.prototype.update = function() {
   this.UpdateMovement();
   this.UpdateHealth();
+  this.CheckForSpiders();
 
   // Update BoundingBox
   this.BoundingBox = new Phaser.Rectangle(
@@ -763,6 +795,7 @@ Imp.prototype.isDying = false;
 Imp.prototype.deathSpinSpeed = 0;
 Imp.prototype.CanMove = true;
 Imp.prototype.BoundingBox = new Phaser.Rectangle(0, 0, 0, 0);
+Imp.prototype.FleeingFrom = null;     // Spider we are currently fleeing from
 
 
 // Imp Specific helper functions
@@ -803,27 +836,6 @@ Imp.prototype.UpdateMovement = function() {
   }
 };
 
-Imp.prototype.ConstrainVelocity = function() {
-  var body = this.body;
-  var maxVelocity = game.constants.imp.maxVelocity;
-  var angle, currVelocitySqr, vx, vy;
-
-  vx = body.data.velocity[0];
-  vy = body.data.velocity[1];
-
-  currVelocitySqr = vx * vx + vy * vy;
-
-  if(currVelocitySqr > maxVelocity * maxVelocity) {
-    angle = Math.atan2(vy, vx);
-
-    vx = Math.cos(angle) * maxVelocity;
-    vy = Math.sin(angle) * maxVelocity;
-
-    body.data.velocity[0] = vx;
-    body.data.velocity[1] = vy;
-  }
-};
-
 Imp.prototype.UpdateHealth = function() {
 
   // Are we ready to die?
@@ -857,6 +869,53 @@ Imp.prototype.UpdateHealth = function() {
     this.deathSpinSpeed += game.constants.imp.deathSpinSpeedIncrement;
   }
 
+};
+
+Imp.prototype.CheckForSpiders = function() {
+
+  var nearestSpider = game.GetNearest(game.spiderObjectGroup, this.position);
+  if(nearestSpider !== null && this.FleeingFrom !== nearestSpider) {
+    var nearestSpiderDistance = game.GetDistance(this.position, nearestSpider.position);
+    if(nearestSpiderDistance <= game.constants.spider.fleeDistance) {
+      this.FleeingFrom = nearestSpider;
+      this.Target = null;
+
+      var newAngle = game.rnd.integerInRange(90, 270);
+      this.body.rotation = this.body.rotation + game.math.degToRad(newAngle);
+      this.body.thrust(game.constants.imp.baseThrust * 5);
+    }
+  }
+
+
+  if(this.FleeingFrom !== null) {
+    var fleeFromDistance = game.GetDistance(this.position, nearestSpider.position);
+    if(fleeFromDistance > game.constants.spider.fleeDistance) {
+      this.FleeingFrom = null;
+    }
+  }
+
+};
+
+
+Imp.prototype.ConstrainVelocity = function() {
+  var body = this.body;
+  var maxVelocity = game.constants.imp.maxVelocity;
+  var angle, currVelocitySqr, vx, vy;
+
+  vx = body.data.velocity[0];
+  vy = body.data.velocity[1];
+
+  currVelocitySqr = vx * vx + vy * vy;
+
+  if(currVelocitySqr > maxVelocity * maxVelocity) {
+    angle = Math.atan2(vy, vx);
+
+    vx = Math.cos(angle) * maxVelocity;
+    vy = Math.sin(angle) * maxVelocity;
+
+    body.data.velocity[0] = vx;
+    body.data.velocity[1] = vy;
+  }
 };
 
 Imp.prototype.UpdateTTL = function() {
@@ -957,10 +1016,10 @@ var Sheep = function(game) {
   var scale = 0.12;
   var spriteSheet = 'spritesheet_sheep_1';
   var frames = game.cache.getFrameData(spriteSheet).getFrames();
-  var sheepSpawn = this.GetSpawnLocation();
+  var spriteSpawn = this.GetSpawnLocation();
 
   // Instansiate
-  Phaser.Sprite.call(this, game, sheepSpawn.position.x, sheepSpawn.position.y, spriteSheet);
+  Phaser.Sprite.call(this, game, spriteSpawn.position.x, spriteSpawn.position.y, spriteSheet);
   this.id = 'sheep_'+game.totalSheepCount;
 
   // Appearance
@@ -972,7 +1031,7 @@ var Sheep = function(game) {
   this.anchor.y = 0.33;
   this.body.setCircle((frames[0].width * scale) / 3.3);
   this.body.damping = (game.constants.sheep.damping * scale);
-  this.body.rotation = sheepSpawn.rotation;
+  this.body.rotation = spriteSpawn.rotation;
   this.body.health = game.constants.sheep.startHealth;
 
   // A.I. Phase
@@ -1094,6 +1153,149 @@ Sheep.prototype.PerformActionState = function() {
 module.exports = Sheep;
 
 },{}],12:[function(require,module,exports){
+var Spider = function(game) {
+
+  // Bit of prep work
+  var scale = 0.12;
+  var spriteSheet = 'spritesheet_spider_1';
+  var frames = game.cache.getFrameData(spriteSheet).getFrames();
+  var spriteSpawn = this.GetSpawnLocation();
+
+  // Instansiate
+  Phaser.Sprite.call(this, game, spriteSpawn.position.x, spriteSpawn.position.y, spriteSheet);
+  this.id = 'spider_'+game.totalSpiderCount;
+
+  // Appearance
+  this.scale.setTo(scale, scale);
+  this.animations.add('walk', [0, 1]);
+
+  // Setup physics
+  game.physics.p2.enable(this, false);
+  this.anchor.y = 0.33;
+  this.body.setCircle((frames[0].width * scale) / 3.3);
+  this.body.damping = (game.constants.spider.damping * scale);
+  this.body.rotation = spriteSpawn.rotation;
+  this.body.health = game.constants.spider.startHealth;
+
+  // A.I. Phase
+  this.ActionState = this.ActionStateEnum.IDLE;
+  this.ChangeActionState();
+  this.PerformActionState();
+
+};
+
+Spider.prototype = Object.create(Phaser.Sprite.prototype);
+Spider.prototype.constructor = Spider;
+Spider.prototype.update = function() {
+
+  // Play animation if we are moving
+  if(this.body.data.velocity[0] > game.constants.spider.moving.threshold || this.body.data.velocity[1] > game.constants.spider.moving.threshold) {
+    this.animations.play('walk', 2, false);
+  }
+
+
+  // Turn if we need to
+  if(this.TurnToAngle !== null) {
+    var newRotation = game.TurnToAngle(this.body.rotation, this.TurnToAngle, game.constants.spider.rotation.speed);
+    if(newRotation < game.constants.spider.rotation.threshold && newRotation > -game.constants.spider.rotation.threshold) {
+      this.TurnToAngle = null;
+    } else {
+      this.body.rotation += newRotation;
+    }
+  }
+
+
+  // Update BoundingBox
+  this.BoundingBox = new Phaser.Rectangle(
+    this.x - (this.width / 2),
+    this.y - (this.height / 2),
+    this.width,
+    this.height
+  );
+};
+
+
+// Properties
+Spider.prototype.ActionStateEnum = { IDLE: 0, TURNING: 1, MOVING: 2 };           // Current active AI State
+Spider.prototype.BoundingBox = new Phaser.Rectangle(0, 0, 0, 0);                 // Rectangle surrounding entire sprite
+Spider.prototype.TurnToAngle = null;                                             // If not null will turn to face this during update
+
+
+// Pick a location on the map to spawn
+Spider.prototype.GetSpawnLocation = function() {
+
+  // hard coded exclusion zone for now
+  var randomX = game.world.randomX;
+  var randomY = game.world.randomY;
+  if(randomY >= 200 && randomY <= 530 && randomX < 480) {
+    randomX = game.rnd.integerInRange(480, game.width);
+  }
+
+  var theReturn = {
+    position : {
+      x: randomX,
+      y: randomY
+    },
+    rotation: game.math.degToRad(game.rnd.integerInRange(0, 360))
+  };
+
+  return theReturn;
+
+};
+
+
+// Will pick a random state to be active for this timeout
+Spider.prototype.ChangeActionState = function(){
+
+  // Randomize between 1 and the total number of ActionStateEnum
+  var newState = game.rnd.integerInRange(1, Object.keys(this.ActionStateEnum).length);
+  this.ActionState = this.ActionStateEnum[Object.keys(this.ActionStateEnum)[newState-1]];
+
+  // Requeue the change
+  game.time.events.add(game.constants.spider.actionStateTimeout, function(){
+    this.ChangeActionState();
+  }, this);
+
+};
+
+Spider.prototype.PerformActionState = function() {
+
+  // Reset all states
+  this.TurnToAngle = null;
+  this.animations.stop(null, true);
+
+
+  // Perform whichever state is active
+  var nextTimeout = 1000;
+  if(this.ActionState == this.ActionStateEnum.IDLE) {
+    nextTimeout = game.constants.spider.idle.timeout;
+  } else if(this.ActionState == this.ActionStateEnum.TURNING) {
+    nextTimeout = game.constants.spider.rotation.timeout;
+    if(game.rnd.integerInRange(0, 1) === 0) {
+      this.TurnToAngle = this.body.rotation + game.math.degToRad(45);
+    } else {
+      this.TurnToAngle = this.body.rotation - game.math.degToRad(45);
+    }
+  } else if(this.ActionState == this.ActionStateEnum.MOVING) {
+    nextTimeout = game.constants.spider.moving.timeout;
+    this.body.thrust(3000);
+
+    // Reset to idle after a move
+    this.ActionState = this.ActionStateEnum.IDLE;
+  }
+
+
+  // Line up the next one
+  game.time.events.add(nextTimeout, function(){
+    this.PerformActionState();
+  }, this);
+};
+
+
+
+module.exports = Spider;
+
+},{}],13:[function(require,module,exports){
 // Load our files
 var constantsModule = require('./game/constants');
 
@@ -1123,6 +1325,7 @@ window.onload = function() {
   // Connect things
   game.totalImpCount = 0;
   game.totalSheepCount = 0;
+  game.totalSpiderCount = 0;
 
   game.impDeaths = 0; // End goal tracking
   game.impWins = 0;   // End goal tracking
@@ -1133,6 +1336,7 @@ window.onload = function() {
   game.constants = constants;
   game.Imp = require('./game/sprites/imp');
   game.Sheep = require('./game/sprites/sheep');
+  game.Spider = require('./game/sprites/spider');
 
 
 
@@ -1209,6 +1413,24 @@ window.onload = function() {
 
   };
 
+  game.GetNearest = function(arrIn, pointIn) {
+    var nearest = null;
+    var currentNearestDistance = 10000000000000;
+    var dist;
+    arrIn.forEach(function(obj){
+      dist = game.GetDistance(pointIn, obj.position);
+      if(dist < currentNearestDistance) {
+        currentNearestDistance = dist;
+        nearest = obj;
+      }
+    });
+    return nearest || null;
+  };
+
+  game.GetDistance = function(pointA, pointB){
+    return Math.sqrt( Math.pow((pointA.x-pointB.x), 2) + Math.pow((pointA.y-pointB.y), 2) );
+  };
+
 
 
 
@@ -1217,4 +1439,4 @@ window.onload = function() {
 
 };
 
-},{"./game/constants":1,"./game/screens/boot":2,"./game/screens/credit":3,"./game/screens/gameplay":4,"./game/screens/instruction":5,"./game/screens/loading":6,"./game/screens/lose":7,"./game/screens/menu":8,"./game/screens/win":9,"./game/sprites/imp":10,"./game/sprites/sheep":11}]},{},[12]);
+},{"./game/constants":1,"./game/screens/boot":2,"./game/screens/credit":3,"./game/screens/gameplay":4,"./game/screens/instruction":5,"./game/screens/loading":6,"./game/screens/lose":7,"./game/screens/menu":8,"./game/screens/win":9,"./game/sprites/imp":10,"./game/sprites/sheep":11,"./game/sprites/spider":12}]},{},[13]);

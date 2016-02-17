@@ -29,7 +29,6 @@ module.exports = function() {
     imp: {
       ttl: 30,                        // Number of seconds to live
       startHealth: 110,
-      spawnRate: '',
 
       bumpDamage: 15,
       damping: 6,
@@ -49,6 +48,7 @@ module.exports = function() {
 
     sheep: {
       spawnRate: 8000,
+      spawnChance: 40,
 
       damping: 6,
       startHealth: 50,
@@ -69,6 +69,35 @@ module.exports = function() {
       moving: {
         thrust: 3000,
         timeout: 1600,
+        threshold: 0.03
+      }
+    },
+
+    spider: {
+      spawnRate: 12000,
+      spawnChance: 40,
+
+      damping: 6,
+      startHealth: 100,
+
+      actionStateTimeout: 3000,         // Number of milliseconds before changin AI state
+
+      fleeDistance: 120,                 // Distance from a spider before turning the other way
+
+      idle: {
+        timeout: 800
+      },
+
+      rotation: {
+        angle: 45,
+        speed: 0.0025,
+        threshold: 0.003,
+        timeout: 1000
+      },
+
+      moving: {
+        thrust: 3000,
+        timeout: 1500,
         threshold: 0.03
       }
     }

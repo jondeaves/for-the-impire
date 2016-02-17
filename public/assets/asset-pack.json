@@ -224,6 +224,15 @@
       "frameWidth": 324,
       "frameHeight": 473,
       "frameMax": 2
+    },
+
+    {
+      "type": "spritesheet",
+      "key": "spritesheet_spider_1",
+      "url": "/assets/gameplayScreen/sprites/spritesheet_spider_one.png",
+      "frameWidth": 422,
+      "frameHeight": 490,
+      "frameMax": 3
     }
 
 

@@ -1,11 +1,6 @@
 var gamePlayScreen = function(){};
 module.exports = gamePlayScreen;
 
-
-// Track in-game objects
-var impObjectGroup;
-var sheepObjectGroup;
-
 // Audio
 var gameplayBgMusic;
 
@@ -63,7 +58,7 @@ gamePlayScreen.prototype = {
 
     // Spawn elements
     this.SpawnSheep();
-    this.SpawnSpiders();
+    this.SpawnSpider();
     this.SpawnImps(game.constants.game.start.impCount, true);
 
 
@@ -84,6 +79,7 @@ gamePlayScreen.prototype = {
     if(clickLine.x !== 0 && clickNearestImp !== undefined && clickNearestImp !== null){
       updateClickLine(clickNearestImp.x, clickNearestImp.y, game.input.x, game.input.y );
     }
+
 
     // Keep track of elapsed time/etc
     this.UpdateTimer();
@@ -106,23 +102,30 @@ gamePlayScreen.prototype = {
   },
 
   render: function() {
-    game.debug.geom(clickLine, '#ff0000');
-    game.debug.geom(clickCircle,'#cfffff', false);
+
+    // These renders are for debug
     game.debug.geom(pentagramRectangle, 'rgba(200,0,0,0.5)');
 
-    this.RenderParticles();
-
-
-    for(var iImp = 0; iImp < impObjectGroup.length; iImp++) {
-      var imp = impObjectGroup.children[iImp];
+    for(var iImp = 0; iImp < game.ImpObjectGroup.length; iImp++) {
+      var imp = game.ImpObjectGroup.children[iImp];
       game.debug.geom(imp.BoundingBox, 'rgba(0,200,0,0.5)');
     }
 
-    for(var iSheep = 0; iSheep < sheepObjectGroup.length; iSheep++) {
-      var sheep = sheepObjectGroup.children[iSheep];
+    for(var iSheep = 0; iSheep < game.SheepObjectGroup.length; iSheep++) {
+      var sheep = game.SheepObjectGroup.children[iSheep];
       game.debug.geom(sheep.BoundingBox, 'rgba(0,0,200,0.5)');
     }
 
+    for(var iSpider = 0; iSpider < game.spiderObjectGroup.length; iSpider++) {
+      var spider = game.spiderObjectGroup.children[iSpider];
+      game.debug.geom(spider.BoundingBox, 'rgba(200,0,0,0.5)');
+    }
+
+
+    // These renders are for game
+    game.debug.geom(clickLine, '#ff0000');
+    game.debug.geom(clickCircle,'#cfffff', false);
+    this.RenderParticles();
   }
 };
 
@@ -228,8 +231,8 @@ gamePlayScreen.prototype.SetupDropoff = function() {
 };
 
 gamePlayScreen.prototype.CheckForSacrifice = function() {
-  for(var i = 0; i < impObjectGroup.length; i++) {
-    var pentImp = impObjectGroup.children[i];
+  for(var i = 0; i < game.ImpObjectGroup.length; i++) {
+    var pentImp = game.ImpObjectGroup.children[i];
     var contains = Phaser.Rectangle.containsRect(pentImp.BoundingBox, pentagramRectangle);
     var intersects = Phaser.Rectangle.intersection(pentImp.BoundingBox, pentagramRectangle);
     if((intersects.width > 30 && intersects.height > 30) || contains) {
@@ -269,8 +272,8 @@ gamePlayScreen.prototype.TriggerSacrifice = function(imp) {
     game.soundeffects.bgMusic.stop();
 
     // Stop imps moving and set graphic to "win" appropriate
-    for(var i = 0; i < impObjectGroup.length; i++) {
-      var currentImp = impObjectGroup.children[i];
+    for(var i = 0; i < game.ImpObjectGroup.length; i++) {
+      var currentImp = game.ImpObjectGroup.children[i];
       currentImp.SetWin();
     }
 
@@ -289,22 +292,45 @@ gamePlayScreen.prototype.UpdateTimer = function() {
 
 gamePlayScreen.prototype.SpawnSheep = function() {
 
-  if(sheepObjectGroup === undefined) {
-    sheepObjectGroup = game.add.physicsGroup(Phaser.Physics.P2JS);
+  if(game.SheepObjectGroup === undefined) {
+    game.SheepObjectGroup = game.add.physicsGroup(Phaser.Physics.P2JS);
   }
 
-  var sheep = new game.Sheep(game);
-  game.add.existing(sheep);
-  sheepObjectGroup.add(sheep);
-  game.totalSheepCount++;
+  // A chance to spawn, not guaranteed
+  var spawnRndChecker = game.rnd.integerInRange(0, 100);
+  if(spawnRndChecker <= game.constants.sheep.spawnChance) {
+    var sheep = new game.Sheep(game);
+    game.add.existing(sheep);
+    game.SheepObjectGroup.add(sheep);
+    game.totalSheepCount++;
+  }
 
   // Schedule the next spawn
   game.time.events.add(game.constants.sheep.spawnRate, function(){
     this.SpawnSheep();
   }, this);
+
 };
 
-gamePlayScreen.prototype.SpawnSpiders = function() {
+gamePlayScreen.prototype.SpawnSpider = function() {
+
+  if(game.spiderObjectGroup === undefined) {
+    game.spiderObjectGroup = game.add.physicsGroup(Phaser.Physics.P2JS);
+  }
+
+  // A chance to spawn, not guaranteed
+  var spawnRndChecker = game.rnd.integerInRange(0, 100);
+  if(spawnRndChecker <= game.constants.spider.spawnChance) {
+    var spider = new game.Spider(game);
+    game.add.existing(spider);
+    game.spiderObjectGroup.add(spider);
+    game.totalSpiderCount++;
+  }
+
+  // Schedule the next spawn
+  game.time.events.add(game.constants.spider.spawnRate, function(){
+    this.SpawnSpider();
+  }, this);
 
 };
 
@@ -318,8 +344,8 @@ gamePlayScreen.prototype.SpawnImps = function(count, first) {
   if(first === undefined) { first = false; }
 
   // Initialize the imp physics group if not already
-  if(impObjectGroup === undefined) {
-    impObjectGroup = game.add.physicsGroup(Phaser.Physics.P2JS);
+  if(game.ImpObjectGroup === undefined) {
+    game.ImpObjectGroup = game.add.physicsGroup(Phaser.Physics.P2JS);
   }
 
   // Create new Imps up to the count provided.
@@ -339,7 +365,7 @@ gamePlayScreen.prototype.SpawnImps = function(count, first) {
     if(canSpawn) {
       var imp = new game.Imp(game);
       game.add.existing(imp);
-      impObjectGroup.add(imp);
+      game.ImpObjectGroup.add(imp);
       game.totalImpCount++;
     }
 
@@ -372,7 +398,7 @@ function updateClickLine(x1, y1, x2, y2) {
 function setupClickLine() {
 
   var clickDown = function(e) {
-    clickNearestImp = getNearest(impObjectGroup, game.input);
+    clickNearestImp = game.GetNearest(game.ImpObjectGroup, game.input);
     clickPoint = {x:game.input.x, y:game.input.y};
     if(clickNearestImp !== undefined && clickNearestImp !== null) {
       updateClickLine(clickNearestImp.x, clickNearestImp.y, clickPoint.x, clickPoint.y );
@@ -383,6 +409,7 @@ function setupClickLine() {
     updateClickLine(0, 0, 0, 0);
     if(clickNearestImp !== undefined && clickNearestImp !== null) {
       clickNearestImp.Target = {x: e.x, y: e.y};
+      clickNearestImp.FleeingFrom = null;       // NO FEAR!!!!
     }
     clickCircle.setTo(game.input.x, game.input.y, 2);
     game.soundeffects.click.play();
@@ -390,29 +417,4 @@ function setupClickLine() {
 
   game.input.onDown.add(function(e) { clickDown(e); }, this);
   game.input.onUp.add(function(e) { release(e); }, this);
-}
-
-
-
-
-
-
-
-
-function getNearest(arrIn, pointIn) {
-  var nearest = null;
-  var currentNearestDistance = 10000000000000;
-  var dist;
-  arrIn.forEach(function(obj){
-    dist = getDistance(pointIn, obj.position);
-    if(dist < currentNearestDistance) {
-      currentNearestDistance = dist;
-      nearest = obj;
-    }
-  });
-  return nearest || null;
-}
-
-function getDistance(pointA, pointB){
-  return Math.sqrt( Math.pow((pointA.x-pointB.x), 2) + Math.pow((pointA.y-pointB.y), 2) );
 }
