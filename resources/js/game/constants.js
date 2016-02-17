@@ -3,7 +3,7 @@ module.exports = function() {
 
     world: {
       width: 1280,
-      height: 800,
+      height: 720,
       boundOffset: 50
     },
 

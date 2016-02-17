@@ -4,7 +4,7 @@ module.exports = function() {
 
     world: {
       width: 1280,
-      height: 800,
+      height: 720,
       boundOffset: 50
     },
 
@@ -120,6 +120,8 @@ Boot.prototype = {
 
     // Scale the game on smaller devices
     this.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+    this.game.scale.fullScreenScaleMode = Phaser.ScaleManager.EXACT_FIT;
+
     this.game.scale.maxWidth = this.game.constants.world.width;
     this.game.scale.maxHeight = this.game.constants.world.height;
     this.game.scale.forceLandscape = true;
@@ -360,9 +362,9 @@ gamePlayScreen.prototype.SetupDropoff = function() {
 
 
   // Cones will create a funnel for Imps to get into.
-  var coneLine1 = game.add.sprite(260, 300, 'sprite_cone_horizontal');
-  var coneLine2 = game.add.sprite(270, 500, 'sprite_cone_horizontal');
-  var coneLine3 = game.add.sprite(80, 390, 'sprite_cone_vertical');
+  var coneLine1 = game.add.sprite(260, 260, 'sprite_cone_horizontal');
+  var coneLine2 = game.add.sprite(270, 460, 'sprite_cone_horizontal');
+  var coneLine3 = game.add.sprite(80, 350, 'sprite_cone_vertical');
 
   // Cones are immovable
   game.physics.p2.enable( [ coneLine1, coneLine2, coneLine3 ]);

@@ -207,9 +207,9 @@ gamePlayScreen.prototype.SetupDropoff = function() {
 
 
   // Cones will create a funnel for Imps to get into.
-  var coneLine1 = game.add.sprite(260, 300, 'sprite_cone_horizontal');
-  var coneLine2 = game.add.sprite(270, 500, 'sprite_cone_horizontal');
-  var coneLine3 = game.add.sprite(80, 390, 'sprite_cone_vertical');
+  var coneLine1 = game.add.sprite(260, 260, 'sprite_cone_horizontal');
+  var coneLine2 = game.add.sprite(270, 460, 'sprite_cone_horizontal');
+  var coneLine3 = game.add.sprite(80, 350, 'sprite_cone_vertical');
 
   // Cones are immovable
   game.physics.p2.enable( [ coneLine1, coneLine2, coneLine3 ]);
