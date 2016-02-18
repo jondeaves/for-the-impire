@@ -34,8 +34,8 @@ module.exports = function() {
       bumpDamage: 15,
       damping: 6,
 
-      maxVelocity: 8,
-      baseThrust: 80,
+      maxVelocity: 14,
+      baseThrust: 130,
       rotationSpeed: 0.0025,
 
       targetOffset: 30,               // Within this distance the target will be dropped
@@ -46,7 +46,7 @@ module.exports = function() {
       deathSpinSpeed: 8,
       deathScaleSpeed: 0.001,
 
-      scale: {low: 0.07, high: 0.1}
+      scale: {low: 0.07, high: 0.15}
     },
 
     sheep: {
@@ -176,6 +176,7 @@ var impressBG;
 // End Goal
 var pentagram;
 var pentagramRectangle;
+// var difficulty = 1;
 
 
 gamePlayScreen.prototype = {
@@ -396,6 +397,7 @@ gamePlayScreen.prototype.CheckForSacrifice = function() {
     var intersects = Phaser.Rectangle.intersection(pentImp.BoundingBox, pentagramRectangle);
     if((intersects.width > 30 && intersects.height > 30) || contains) {
       this.TriggerSacrifice(pentImp);
+      game.difficulty ++;
     }
   }
 };
@@ -532,7 +534,7 @@ gamePlayScreen.prototype.SpawnImps = function(count, first) {
 
 
   // Schedule the next spawn
-  game.time.events.add(game.constants.game.spawn.rate, function(){
+  game.time.events.add(game.constants.game.spawn.rate - (game.difficulty*100), function(){
     this.SpawnImps(1);
   }, this);
 
@@ -813,7 +815,6 @@ Imp.prototype.FleeingFrom = null;     // Spider we are currently fleeing from
 
 // Imp Specific helper functions
 Imp.prototype.UpdateMovement = function() {
-
   // Check if we are within
   if(this.CanMove) {
     var isOutside =
@@ -832,7 +833,7 @@ Imp.prototype.UpdateMovement = function() {
 
 
     if(this.Target !== null) {
-      game.AccelerateToObject(this, this.Target, game.constants.imp.baseThrust);
+      game.AccelerateToObject(this, this.Target, game.constants.imp.baseThrust + (game.difficulty *20));
       game.TurnToFace(this, this.Target, game.constants.imp.rotationSpeed);
       var distanceFromTarget = game.GetDistance(this, this.Target);
       if(distanceFromTarget < game.constants.imp.targetOffset) {
@@ -902,7 +903,7 @@ Imp.prototype.UpdateDamageDealt = function() {
   var vx = this.body.data.velocity[0];
   var vy = this.body.data.velocity[1];
   var currVelocitySqr = vx * vx + vy * vy;
-  var maxVelocitySqr = game.constants.imp.maxVelocity * game.constants.imp.maxVelocity;
+  var maxVelocitySqr = (game.constants.imp.maxVelocity) * (game.constants.imp.maxVelocity);
   var damageDealtPercentage = (currVelocitySqr/maxVelocitySqr) * 2;
   if(damageDealtPercentage > 1) {
     damageDealtPercentage = 1;
@@ -937,7 +938,7 @@ Imp.prototype.CheckForSpiders = function() {
 
 Imp.prototype.ConstrainVelocity = function() {
   var body = this.body;
-  var maxVelocity = game.constants.imp.maxVelocity;
+  var maxVelocity = game.constants.imp.maxVelocity + game.difficulty;
   var angle, currVelocitySqr, vx, vy;
 
   vx = body.data.velocity[0];
@@ -1362,6 +1363,7 @@ window.onload = function() {
   game.Imp = require('./game/sprites/imp');
   game.Sheep = require('./game/sprites/sheep');
   game.Spider = require('./game/sprites/spider');
+  game.difficulty = 1;
 
 
 
